@@ -1,5 +1,11 @@
+# elixir
 /_build
 /cover
 /deps
 erl_crash.dump
 *.ez
+
+# elm
+elm-package.json
+elm-stuff/
+repl-temp-*
