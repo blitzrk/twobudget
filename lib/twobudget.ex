@@ -1,7 +1,4 @@
 defmodule TwoBudget do
-  @moduledoc ~s"""
-  """
-
   use Application
 
   def start(_type, _args) do

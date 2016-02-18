@@ -1,7 +1,4 @@
 defmodule TwoBudget.Supervisor do
-  @moduledoc ~s"""
-  """
-
   use Supervisor
 
   def start_link do
@@ -10,7 +7,6 @@ defmodule TwoBudget.Supervisor do
 
   def init(:ok) do
     children = [
-      supervisor(TwoBudget.Web.Supervisor, [])
     ]
 
     supervise(children, strategy: :one_for_one)
