@@ -7,6 +7,7 @@ defmodule TwoBudget.Supervisor do
 
   def init(:ok) do
     children = [
+      supervisor(TwoBudget.Repo, [])
     ]
 
     supervise(children, strategy: :one_for_one)
