@@ -3,6 +3,7 @@ defmodule TwoBudget.Router do
 
   @config Application.get_env(:twobudget, :http)
 
+  plug Plug.Static, at: "/static", from: :twobudget
   plug :match
   plug :dispatch
 
