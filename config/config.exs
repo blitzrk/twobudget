@@ -1,7 +1,7 @@
 use Mix.Config
 
-defmodule Config do
-  def port() do
+defmodule Env do
+  def port do
     port = System.get_env("PORT")
     if port do
       {port, _} = Integer.parse(port)
@@ -17,6 +17,6 @@ config :twobudget, TwoBudget.Repo,
   database: "budget.sqlite3"
 
 config :twobudget, :http,
-  port: Config.port
+  port: Env.port
 
 #import_config "#{Mix.env}.exs"
