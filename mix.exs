@@ -11,13 +11,17 @@ defmodule TwoBudget.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :cowboy, :plug, :sqlite_ecto, :ecto],
-     mod: {TwoBudget, []}]
+    [ applications:
+      [:logger, :cowboy, :plug, :sqlite_ecto, :ecto, :comeonin],
+      mod: {TwoBudget, []}
+    ]
   end
 
   defp deps do
-    [{:cowboy, "~> 1.0.0"},
-     {:plug, "~> 1.0"},
-     {:sqlite_ecto, "~> 1.0.0"}]
+    [ {:cowboy, "~> 1.0.0"},
+      {:plug, "~> 1.0"},
+      {:sqlite_ecto, "~> 1.0.0"},
+      {:comeonin, "~> 2.1"}
+    ]
   end
 end
