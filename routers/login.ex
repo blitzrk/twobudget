@@ -1,6 +1,9 @@
 defmodule TwoBudget.LoginRouter do
   use Plug.Router
 
+  plug :match
+  plug :dispatch
+
   get "/" do
     page_contents = EEx.eval_file("templates/login.eex", [])
     conn

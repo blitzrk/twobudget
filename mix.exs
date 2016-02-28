@@ -5,6 +5,7 @@ defmodule TwoBudget.Mixfile do
     [app: :twobudget,
      version: "0.0.1",
      elixir: "~> 1.2",
+     elixirc_paths: ["lib", "routers"],
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps]
