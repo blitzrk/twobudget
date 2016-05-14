@@ -1,6 +1,7 @@
 module Transaction exposing (..)
 
 import Date
+import Debug
 import Html as H exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onInput, onClick)
@@ -85,7 +86,6 @@ form tagInput tagSubmit {amount, payee, category, account, date, note} =
   let
     updateInput field = onInput <| tagInput field
   in
-    -- TODO: Change to form element
     H.form []
       [ tr []
         [ td [] [ label [] [ text "Amount: " ] ]
@@ -115,4 +115,27 @@ form tagInput tagSubmit {amount, payee, category, account, date, note} =
       ]
 
 
+openForm : Transaction -> Transaction
+openForm transaction =
+  { transaction | open = True }
+
+
+closeForm : Transaction -> Transaction
+closeForm transaction =
+  { transaction | open = False }
+
+
+toggleForm : Transaction -> Transaction
+toggleForm transaction =
+  { transaction | open = not transaction.open }
+
+
+isOpen : Transaction -> Bool
+isOpen transaction =
+  transaction.open
+
+
+setError : String -> Transaction -> Transaction
+setError msg transaction =
+  { transaction | error = msg }
 

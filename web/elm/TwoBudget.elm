@@ -90,22 +90,20 @@ update msg model =
     Just {name, jwt} ->
       case msg of
         ToggleTransaction ->
-          case model.transaction.open of
+          case Transaction.isOpen model.transaction of
             False -> (model, Task.perform InitTransaction InitTransaction Date.now)
-            True ->
-              let transaction = model.transaction
-              in ({model | transaction = { transaction | open = False}}, Cmd.none)
+            True -> ({ model |
+                       transaction = Transaction.toggleForm model.transaction}, Cmd.none)
 
         InitTransaction date ->
-          case model.transaction.open of -- recheck to avoid a race condition
+          case Transaction.isOpen model.transaction of -- recheck to avoid a race condition
             True  -> (model, Cmd.none)
             False ->
               let
-                t = Transaction.new date
                 newModel =
                   { model |
                     date = date,
-                    transaction = { t | open = True }
+                    transaction = Transaction.openForm <| Transaction.new date
                   }
               in
                 (newModel, Cmd.none)
@@ -118,20 +116,18 @@ update msg model =
 
         SubmitTransaction ->
           let
-            transaction = model.transaction
-
             validation =
               (True, "")
           in
             case validation of
               (True, jsonForm) ->
                 ( { model |
-                    transaction = { transaction | open = False }
+                    transaction = Transaction.closeForm model.transaction
                   }, WebSocket.send (wsAddr name jwt) jsonForm )
 
               (False, msg) ->
                 ( { model |
-                    transaction = { transaction | error = msg }
+                    transaction = Transaction.setError msg model.transaction
                   }, Cmd.none )
 
         SyncFrom jsonForm ->
@@ -166,7 +162,7 @@ view model =
   div []
     [ div [] [ text "Hello World" ],
       button [ onClick ToggleTransaction ] [ text (if model.transaction.open then "-" else "+") ],
-      if model.transaction.open then
+      if Transaction.isOpen model.transaction then
         Transaction.form InputTransaction SubmitTransaction model.transaction
       else
         noElement
