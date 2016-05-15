@@ -159,14 +159,22 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-  div []
-    [ div [] [ text "Hello World" ],
-      button [ onClick ToggleTransaction ] [ text (if model.transaction.open then "-" else "+") ],
-      if Transaction.isOpen model.transaction then
-        Transaction.form InputTransaction SubmitTransaction model.transaction
-      else
-        noElement
-    ]
+  let
+    transactionButton =
+      if Transaction.isOpen model.transaction
+         then button [ onClick ToggleTransaction ] [ text "-" ]
+         else button [ onClick ToggleTransaction ] [ text "+" ]
+
+    transaction =
+      if Transaction.isOpen model.transaction
+         then Transaction.form InputTransaction SubmitTransaction model.transaction
+         else noElement
+  in
+    main' []
+      [
+        transactionButton,
+        transaction
+      ]
 
 
 noElement : Html Msg
