@@ -4,10 +4,8 @@ import Date
 import Debug
 import Html as H exposing (..)
 import Html.App as Html
-import Html.Attributes exposing (..)
-import Html.Events exposing (on, onInput, onClick)
-import Result
-import String
+import Html.Attributes exposing (style)
+import Html.Events exposing (onClick)
 import Task
 import Transaction exposing (Transaction)
 import WebSocket
@@ -115,20 +113,16 @@ update msg model =
           in (newModel, Cmd.none)
 
         SubmitTransaction ->
-          let
-            validation =
-              (True, "")
-          in
-            case validation of
-              (True, jsonForm) ->
-                ( { model |
-                    transaction = Transaction.closeForm model.transaction
-                  }, WebSocket.send (wsAddr name jwt) jsonForm )
+          case Transaction.validate model.transaction of
+            (True, jsonForm) ->
+              ( { model |
+                  transaction = Transaction.closeForm model.transaction
+                }, WebSocket.send (wsAddr name jwt) jsonForm )
 
-              (False, msg) ->
-                ( { model |
-                    transaction = Transaction.setError msg model.transaction
-                  }, Cmd.none )
+            (False, msg) ->
+              ( { model |
+                  transaction = Transaction.setError msg model.transaction
+                }, Cmd.none )
 
         SyncFrom jsonForm ->
           -- decode json, determine which fields to update, modify model

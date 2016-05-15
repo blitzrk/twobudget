@@ -1,7 +1,8 @@
-module Transaction exposing (..)
+module Transaction exposing (
+  Transaction, Field, new, update, validate, form,
+  isOpen, openForm, closeForm, toggleForm, setError)
 
 import Date
-import Debug
 import Html as H exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onInput, onClick)
@@ -31,6 +32,19 @@ type Field
   | Note
 
 
+new : Date.Date -> Transaction
+new date =
+  { amount   = ""
+  , payee    = ""
+  , category = ""
+  , account  = ""
+  , date     = date
+  , note     = ""
+  , open     = False
+  , error    = ""
+  }
+
+
 update : Field -> String -> Transaction -> Transaction
 update field value transaction =
   case field of
@@ -45,18 +59,9 @@ update field value transaction =
         Just date -> {transaction | date = date} -- Remember to validate date before syncing!
 
 
-new : Date.Date -> Transaction
-new date =
-  { amount   = ""
-  , payee    = ""
-  , category = ""
-  , account  = ""
-  , date     = date
-  , note     = ""
-  , open     = False
-  , error    = ""
-  }
-
+validate : Transaction -> (Bool, String)
+validate transaction =
+  ( True, "" )
 
 
 dateString : Date.Date -> String
