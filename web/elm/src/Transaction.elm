@@ -1,62 +1,66 @@
-module Transaction exposing (
-  Transaction, Field, new, update, validate, form,
-  isOpen, openForm, closeForm, toggleForm, setError)
+module Transaction exposing (Transaction, Msg, init, update, view, setHref)
 
 import Date
-import Html as H exposing (..)
+import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onInput, onClick)
 import String
+import Task
 import WebSocket
 
 
+
+-- MODEL
 
 type alias Transaction =
   { amount   : String
   , payee    : String
   , category : String
   , account  : String
-  , date     : Date.Date
+  , date     : String
   , note     : String
   , open     : Bool
   , error    : String
+  , href     : String
   }
 
 
-type Field
-  = Amount
-  | Payee
-  | Category
-  | Account
-  | Date
-  | Note
+type Msg
+  = Amount String
+  | Payee String
+  | Category String
+  | Account String
+  | Date String
+  | Note String
+  | Show
+  | Hide
+  | Today Date.Date
+  | Submit
 
 
-new : Date.Date -> Transaction
-new date =
+init : String -> Transaction
+init addr =
   { amount   = ""
   , payee    = ""
   , category = ""
   , account  = ""
-  , date     = date
+  , date     = "1970-01-01"
   , note     = ""
   , open     = False
   , error    = ""
+  , href     = addr
   }
 
 
-update : Field -> String -> Transaction -> Transaction
-update field value transaction =
-  case field of
-    Amount   -> {transaction | amount = value}
-    Payee    -> {transaction | payee = value}
-    Category -> {transaction | category = value}
-    Account  -> {transaction | account = value}
-    Note     -> {transaction | note = value}
-    Date ->
-      case Result.toMaybe <| Date.fromString value of
-        Nothing   -> transaction
-        Just date -> {transaction | date = date} -- Remember to validate date before syncing!
+
+-- UPDATE
+
+datestring : Date.Date -> String
+datestring date =
+  [ toString << Date.year <| date
+  , toString << Date.month <| date
+  , toString << Date.day <| date
+  ] |> String.join "-"
 
 
 validate : Transaction -> (Bool, String)
@@ -64,83 +68,74 @@ validate transaction =
   ( True, "" )
 
 
-dateString : Date.Date -> String
-dateString date =
-  let month = case Date.month date of
-    Date.Jan -> 1
-    Date.Feb -> 2
-    Date.Mar -> 3
-    Date.Apr -> 4
-    Date.May -> 5
-    Date.Jun -> 6
-    Date.Jul -> 7
-    Date.Aug -> 8
-    Date.Sep -> 9
-    Date.Oct -> 10
-    Date.Nov -> 11
-    Date.Dec -> 12
-  in
-  [ Date.year date, month, Date.day date + 1 ]
-    |> List.map toString
-    |> List.map (\s -> if String.length s < 2 then "0" ++ s else s)
-    |> String.join "-"
+update : Msg -> Transaction -> ( Transaction, Cmd msg, Maybe (Cmd Msg) )
+update msg transaction =
+  case msg of
+    Show ->
+      ( {transaction | open = True}
+      , Cmd.none, Just <| Task.perform Today Today Date.now )
+    Hide       -> ( {transaction | open = False}, Cmd.none, Nothing )
+    Amount v   -> ( {transaction | amount = v}, Cmd.none, Nothing )
+    Payee v    -> ( {transaction | payee = v}, Cmd.none, Nothing )
+    Category v -> ( {transaction | category = v}, Cmd.none, Nothing )
+    Account v  -> ( {transaction | account = v}, Cmd.none, Nothing )
+    Note v     -> ( {transaction | note = v}, Cmd.none, Nothing )
+    Date v     -> ( {transaction | date = v}, Cmd.none, Nothing )
+    Today d    -> ( {transaction | date = datestring d}, Cmd.none, Nothing )
+    Submit ->
+      case validate transaction of
+        ( True, json ) ->
+          ( init transaction.href
+          , WebSocket.send transaction.href json, Nothing )
+        ( False, err ) ->
+          ( {transaction | error = err}, Cmd.none, Nothing )
 
 
-form : (Field -> String -> msg) -> msg -> Transaction -> Html msg
-form tagInput tagSubmit {amount, payee, category, account, date, note} =
+setHref : String -> Transaction -> Transaction
+setHref href transaction =
+  { transaction |
+    href = href }
+
+
+-- VIEW
+
+view : Transaction -> Html Msg
+view {amount, payee, category, account, date, note, open} =
   let
-    updateInput field = onInput <| tagInput field
+    tButton =
+      if open
+         then button [ onClick Hide ] [ text "-" ]
+         else button [ onClick Show ] [ text "+" ]
   in
-    H.form []
-      [ tr []
-        [ td [] [ label [] [ text "Amount: " ] ]
-        , td [] [ input [type' "number", updateInput Amount, value amount] [] ]
+    section []
+      [ tButton
+      , br [] []
+      , Html.form [ style [("display", if open then "block" else "none")] ]
+        [ tr []
+          [ td [] [ label [] [ text "Amount: " ] ]
+          , td [] [ input [type' "number", onInput Amount, value amount ] [] ]
+          ]
+        , tr []
+          [ td [] [ label [] [ text "Payee: " ] ]
+          , td [] [ input [ onInput Payee, value payee ] [] ]
+          ]
+        , tr []
+          [ td [] [ label [] [ text "Category: " ] ]
+          , td [] [ input [ onInput Category, value category ] [] ]
+          ]
+        , tr []
+          [ td [] [ label [] [ text "Account: " ] ]
+          , td [] [ input [ onInput Account, value account ] [] ]
+          ]
+        , tr []
+          [ td [] [ label [] [ text "Date: " ] ]
+          , td [] [ input [ type' "date", onInput Date, value date ] [] ]
+          ]
+        , tr []
+          [ td [] [ label [] [ text "Note: " ] ]
+          , td [] [ input [ onInput Note, value note ] [] ]
+          ]
+        , tr [] [ button [onClick Submit] [text "Submit"] ]
         ]
-      , tr []
-        [ td [] [ label [] [ text "Payee: " ] ]
-        , td [] [ input [updateInput Payee, value payee] [] ]
-        ]
-      , tr []
-        [ td [] [ label [] [ text "Category: " ] ]
-        , td [] [ input [updateInput Category, value category] [] ]
-        ]
-      , tr []
-        [ td [] [ label [] [ text "Account: " ] ]
-        , td [] [ input [updateInput Account, value account] [] ]
-        ]
-      , tr []
-        [ td [] [ label [] [ text "Date: " ] ]
-        , td [] [ input [type' "date", updateInput Date, value <| dateString date] [] ]
-        ]
-      , tr []
-        [ td [] [ label [] [ text "Note: " ] ]
-        , td [] [ input [updateInput Note, value note] [] ]
-        ]
-      , tr [] [ button [onClick tagSubmit] [text "Submit"] ]
       ]
-
-
-openForm : Transaction -> Transaction
-openForm transaction =
-  { transaction | open = True }
-
-
-closeForm : Transaction -> Transaction
-closeForm transaction =
-  { transaction | open = False }
-
-
-toggleForm : Transaction -> Transaction
-toggleForm transaction =
-  { transaction | open = not transaction.open }
-
-
-isOpen : Transaction -> Bool
-isOpen transaction =
-  transaction.open
-
-
-setError : String -> Transaction -> Transaction
-setError msg transaction =
-  { transaction | error = msg }
 

@@ -1,9 +1,10 @@
 module TwoBudget exposing (..)
 
+import Budget
 import Date
 import Debug
-import Html as H exposing (..)
-import Html.App as Html
+import Html exposing (..)
+import Html.App as App
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Task
@@ -13,7 +14,7 @@ import WebSocket
 
 
 main =
-  Html.program
+  App.program
     { init = init
     , view = view
     , update = update
@@ -30,24 +31,12 @@ type TabView
   | Overview
 
 
-type alias BudgetItem =
-  { itemName   : String
-  , prevBudget : Float
-  , currBudget : Float
-  , currSpent  : Float
-  , currRemain : Float
-  }
-
-
-type alias BudgetMonth = List BudgetItem
-
-
 type alias Model =
   { user            : Maybe { name : String, jwt : String }
   , date            : Date.Date
   , state           : TabView
   , monthFocus      : Int
-  , monthCache      : List (Int, BudgetMonth)
+  , monthCache      : List (Int, Budget.Month)
   , transaction     : Transaction
   }
 
@@ -62,7 +51,7 @@ init =
       , state = Overview
       , monthFocus = -1
       , monthCache = []
-      , transaction = Transaction.new (Date.fromTime 0)
+      , transaction = Transaction.init "" -- set websocket addr on user login
       }
   in
     (default, Cmd.none)
@@ -73,10 +62,7 @@ init =
 
 
 type Msg
-  = ToggleTransaction
-  | InitTransaction Date.Date
-  | InputTransaction Transaction.Field String
-  | SubmitTransaction
+  = Transact Transaction.Msg
   | SyncFrom String
 
 
@@ -87,42 +73,13 @@ update msg model =
       (model, Cmd.none)
     Just {name, jwt} ->
       case msg of
-        ToggleTransaction ->
-          case Transaction.isOpen model.transaction of
-            False -> (model, Task.perform InitTransaction InitTransaction Date.now)
-            True -> ({ model |
-                       transaction = Transaction.toggleForm model.transaction}, Cmd.none)
-
-        InitTransaction date ->
-          case Transaction.isOpen model.transaction of -- recheck to avoid a race condition
-            True  -> (model, Cmd.none)
-            False ->
-              let
-                newModel =
-                  { model |
-                    date = date,
-                    transaction = Transaction.openForm <| Transaction.new date
-                  }
-              in
-                (newModel, Cmd.none)
-
-        InputTransaction field value ->
-          let newModel =
-            { model |
-              transaction = Transaction.update field value model.transaction }
-          in (newModel, Cmd.none)
-
-        SubmitTransaction ->
-          case Transaction.validate model.transaction of
-            (True, jsonForm) ->
-              ( { model |
-                  transaction = Transaction.closeForm model.transaction
-                }, WebSocket.send (wsAddr name jwt) jsonForm )
-
-            (False, msg) ->
-              ( { model |
-                  transaction = Transaction.setError msg model.transaction
-                }, Cmd.none )
+        Transact msg ->
+          let ( transaction', cmd', extra ) = Transaction.update msg model.transaction
+          in case extra of
+            Nothing -> ( {model | transaction = transaction'}, cmd' )
+            Just cmd ->
+              ( {model | transaction = transaction'}
+              , Cmd.batch [cmd', Cmd.map Transact cmd] )
 
         SyncFrom jsonForm ->
           -- decode json, determine which fields to update, modify model
@@ -153,24 +110,6 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-  let
-    transactionButton =
-      if Transaction.isOpen model.transaction
-         then button [ onClick ToggleTransaction ] [ text "-" ]
-         else button [ onClick ToggleTransaction ] [ text "+" ]
-
-    transaction =
-      if Transaction.isOpen model.transaction
-         then Transaction.form InputTransaction SubmitTransaction model.transaction
-         else noElement
-  in
-    main' []
-      [
-        transactionButton,
-        transaction
-      ]
-
-
-noElement : Html Msg
-noElement =
-  div [ style [ "display" => "none" ] ] []
+  main' []
+    [ App.map Transact (Transaction.view model.transaction)
+    ]
