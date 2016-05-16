@@ -1,6 +1,7 @@
 module Transaction exposing (Transaction, Msg, init, update, view, setHref)
 
 import Date
+import Date.Extra as Date2
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onInput, onClick)
@@ -55,14 +56,6 @@ init addr =
 
 -- UPDATE
 
-datestring : Date.Date -> String
-datestring date =
-  [ toString << Date.year <| date
-  , toString << Date.month <| date
-  , toString << Date.day <| date
-  ] |> String.join "-"
-
-
 validate : Transaction -> (Bool, String)
 validate transaction =
   ( True, "" )
@@ -81,7 +74,10 @@ update msg transaction =
     Account v  -> ( {transaction | account = v}, Cmd.none, Nothing )
     Note v     -> ( {transaction | note = v}, Cmd.none, Nothing )
     Date v     -> ( {transaction | date = v}, Cmd.none, Nothing )
-    Today d    -> ( {transaction | date = datestring d}, Cmd.none, Nothing )
+    Today d ->
+      ( { transaction |
+          date = Date2.toString << Date2.split <| d }
+      , Cmd.none, Nothing )
     Submit ->
       case validate transaction of
         ( True, json ) ->
