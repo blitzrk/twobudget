@@ -38,6 +38,7 @@ update msg model =
           |> Date2.split
           |> changeMonthHelp delta
           |> Date2.toString
+          |> \d -> d ++ " 12:00"
           |> Date.fromString
       changeMonthHelp delta (y, m, d) =
         let
@@ -46,8 +47,10 @@ update msg model =
               1  -> if delta < 0 then (y - 1, 12) else (y, m + delta)
               12 -> if delta > 0 then (y + 1, 1)  else (y, m + delta)
               _  -> (y, m + delta)
+          datestring =
+            Date2.toString (year, month, 1) ++ " 12:00"
           day =
-            case Date.fromString (Date2.toString (year, month, 1)) of
+            case Date.fromString datestring of
               Ok date -> Basics.min d (daysInMonth date)
               Err msg -> Debug.crash msg
         in
@@ -61,6 +64,7 @@ update msg model =
           |> Date2.split
           |> (\(y, m, d) -> (y, m, i))
           |> Date2.toString
+          |> \d -> d ++ " 12:00"
           |> Date.fromString
       in case date of
         Ok date -> ( date, Cmd.none)

@@ -27,7 +27,6 @@ toString (y, m, d) =
     |> List.map Basics.toString
     |> List.map (\s -> if String.length s < 2 then "0" ++ s else s)
     |> String.join "-"
-    |> \s -> s ++ " 12:00"
 
 
 weekPos : Date -> Int

@@ -44,6 +44,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
   let
+    (transaction', cmd') = Transaction.init "" -- set websocket addr on user login
     default =
       -- { user = Nothing
       { user = Just {name="ben", jwt="3"}
@@ -51,10 +52,10 @@ init =
       , state = Overview
       , monthFocus = -1
       , monthCache = []
-      , transaction = Transaction.init "" -- set websocket addr on user login
+      , transaction = transaction'
       }
   in
-    (default, Cmd.none)
+    (default, Cmd.batch [ Cmd.map Transact cmd' ])
 
 
 

@@ -39,18 +39,20 @@ type Msg
   | Submit
 
 
-init : String -> Transaction
+init : String -> ( Transaction, Cmd Msg )
 init addr =
-  { amount   = ""
-  , payee    = ""
-  , category = ""
-  , account  = ""
-  , date     = "1970-01-01"
-  , note     = ""
-  , open     = False
-  , error    = ""
-  , href     = addr
-  }
+  ( { amount   = ""
+    , payee    = ""
+    , category = ""
+    , account  = ""
+    , date     = "1970-01-01"
+    , note     = ""
+    , open     = False
+    , error    = ""
+    , href     = addr
+    }
+  , Task.perform Today Today Date.now
+  )
 
 
 
@@ -64,9 +66,7 @@ validate transaction =
 update : Msg -> Transaction -> ( Transaction, Cmd msg, Maybe (Cmd Msg) )
 update msg transaction =
   case msg of
-    Show ->
-      ( {transaction | open = True}
-      , Cmd.none, Just <| Task.perform Today Today Date.now )
+    Show       -> ( {transaction | open = True}, Cmd.none, Nothing )
     Hide       -> ( {transaction | open = False}, Cmd.none, Nothing )
     Amount v   -> ( {transaction | amount = v}, Cmd.none, Nothing )
     Payee v    -> ( {transaction | payee = v}, Cmd.none, Nothing )
@@ -81,7 +81,7 @@ update msg transaction =
     Submit ->
       case validate transaction of
         ( True, json ) ->
-          ( init transaction.href
+          ( fst << init <| transaction.href
           , WebSocket.send transaction.href json, Nothing )
         ( False, err ) ->
           ( {transaction | error = err}, Cmd.none, Nothing )
