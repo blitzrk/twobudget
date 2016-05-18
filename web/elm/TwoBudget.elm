@@ -1,6 +1,6 @@
 module TwoBudget exposing (..)
 
-import Budget
+import Budget exposing (Budget)
 import Date
 import Debug
 import Html exposing (..)
@@ -14,7 +14,7 @@ import WebSocket
 
 
 main =
-  App.program
+  App.programWithFlags
     { init = init
     , view = view
     , update = update
@@ -32,30 +32,27 @@ type TabView
 
 
 type alias Model =
-  { user            : Maybe { name : String, jwt : String }
-  , date            : Date.Date
-  , state           : TabView
-  , monthFocus      : Int
-  , monthCache      : List (Int, Budget.Month)
-  , transaction     : Transaction
+  { user        : { name : String, jwt : String }
+  , state       : TabView
+  , budget      : Budget
+  , transaction : Transaction
   }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : {name : String, jwt : String} -> ( Model, Cmd Msg )
+init user =
   let
-    (transaction', cmd') = Transaction.init "" -- set websocket addr on user login
+    ws = wsAddr user.name user.jwt
+    (transaction, tcmd) = Transaction.init ws
     default =
       -- { user = Nothing
-      { user = Just {name="ben", jwt="3"}
-      , date = Date.fromTime 0
+      { user = user
       , state = Overview
-      , monthFocus = -1
-      , monthCache = []
-      , transaction = transaction'
+      , budget = Budget.init 1 ws
+      , transaction = transaction
       }
   in
-    (default, Cmd.batch [ Cmd.map Transact cmd' ])
+    (default, Cmd.batch [ Cmd.map Transact tcmd ])
 
 
 
@@ -69,22 +66,19 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case model.user of
-    Nothing ->
-      (model, Cmd.none)
-    Just {name, jwt} ->
-      case msg of
-        Transact msg ->
-          let ( transaction', cmd', extra ) = Transaction.update msg model.transaction
-          in case extra of
-            Nothing -> ( {model | transaction = transaction'}, cmd' )
-            Just cmd ->
-              ( {model | transaction = transaction'}
-              , Cmd.batch [cmd', Cmd.map Transact cmd] )
+  let {name, jwt} = model.user
+  in case msg of
+      Transact msg ->
+        let ( transaction', cmd', extra ) = Transaction.update msg model.transaction
+        in case extra of
+          Nothing -> ( {model | transaction = transaction'}, cmd' )
+          Just cmd ->
+            ( {model | transaction = transaction'}
+            , Cmd.batch [cmd', Cmd.map Transact cmd] )
 
-        SyncFrom jsonForm ->
-          -- decode json, determine which fields to update, modify model
-          (model, Cmd.none)
+      SyncFrom jsonForm ->
+        -- decode json, determine which fields to update, modify model
+        (model, Cmd.none)
 
 
 
@@ -92,14 +86,12 @@ update msg model =
 
 wsAddr : String -> String -> String
 wsAddr username jwt =
-  "ws://127.0.0.1/" ++ username ++ "?token=" ++ jwt
+  "ws://home.krieg.io/" ++ username ++ "?token=" ++ jwt
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  case model.user of
-    Nothing -> Sub.none
-    Just {name, jwt} -> Sub.none -- WebSocket.listen (wsAddr name jwt) SyncFrom
+    Sub.none -- WebSocket.listen (wsAddr model.user.name model.user.jwt) SyncFrom
 
 
 

@@ -20,4 +20,4 @@
 
 // import socket from "./socket"
 
-Elm.TwoBudget.fullscreen();
+Elm.TwoBudget.fullscreen({name: "ben", jwt: "4"});
