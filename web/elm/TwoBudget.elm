@@ -66,7 +66,6 @@ init user =
 type Msg
   = Transact Transaction.Msg
   | BudgetView BudgetView.Msg
-  | SyncFrom String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -85,10 +84,6 @@ update msg model =
             , Cmd.batch [ cmd, Cmd.map BudgetView bvCmd ]
             )
 
-      SyncFrom jsonForm ->
-        -- decode json, determine which fields to update, modify model
-        (model, Cmd.none)
-
 
 
 -- SUBSCRIPTIONS
@@ -102,7 +97,6 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ Sub.map BudgetView (BudgetView.subscriptions model.budgetView)
-    --, WebSocket.listen (wsAddr model.user.name model.user.jwt) SyncFrom
     ]
 
 

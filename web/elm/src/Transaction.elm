@@ -86,6 +86,14 @@ view : Model -> Html Msg
 view {form, open} =
   let
     value' field = value <| Maybe.withDefault "" (form |> Dict.get field)
+    row attrs field =
+      tr []
+         [ td [] [ label [] [ text <|
+                                (String.toUpper <| String.left 1 field) ++
+                                (String.dropLeft 1 field) ++ ": "
+                            ] ]
+         , td [] [ input (attrs ++ [ onInput (Set field), value' field ]) [] ]
+         ]
     tButton =
       if open
          then button [ onClick Hide ] [ text "-" ]
@@ -95,30 +103,11 @@ view {form, open} =
       [ tButton
       , br [] []
       , Html.form [ style [("display", if open then "block" else "none")] ]
-        [ tr []
-          [ td [] [ label [] [ text "Amount: " ] ]
-          , td [] [ input [type' "number", onInput (Set "amount"), value' "amount" ] [] ]
-          ]
-        , tr []
-          [ td [] [ label [] [ text "Payee: " ] ]
-          , td [] [ input [ onInput (Set "payee"), value' "payee" ] [] ]
-          ]
-        , tr []
-          [ td [] [ label [] [ text "Category: " ] ]
-          , td [] [ input [ onInput (Set "category"), value' "category" ] [] ]
-          ]
-        , tr []
-          [ td [] [ label [] [ text "Account: " ] ]
-          , td [] [ input [ onInput (Set "account"), value' "account" ] [] ]
-          ]
-        , tr []
-          [ td [] [ label [] [ text "Date: " ] ]
-          , td [] [ input [ type' "date", onInput (Set "date"), value' "date" ] [] ]
-          ]
-        , tr []
-          [ td [] [ label [] [ text "Note: " ] ]
-          , td [] [ input [ onInput (Set "note"), value' "note" ] [] ]
-          ]
+        [ row [type' "number"] "amount"
+        , row [] "payee"
+        , row [] "category"
+        , row [type' "date"] "date"
+        , row [] "note"
         , tr [] [ button [onClick Submit] [text "Submit"] ]
         ]
       ]
