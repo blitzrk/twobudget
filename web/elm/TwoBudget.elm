@@ -74,20 +74,16 @@ update msg model =
   let {name, jwt} = model.user
   in case msg of
       Transact msg ->
-        let ( transaction', cmd', extra ) = Transaction.update msg model.transaction
-        in case extra of
-          Nothing -> ( {model | transaction = transaction'}, cmd' )
-          Just cmd ->
-            ( {model | transaction = transaction'}
-            , Cmd.batch [cmd', Cmd.map Transact cmd] )
+        let ( transaction, cmd, trCmd ) = Transaction.update msg model.transaction
+        in  ( { model | transaction = transaction }
+            , Cmd.batch [ cmd, Cmd.map Transact trCmd ]
+            )
 
       BudgetView msg ->
-        let ( budgetView', cmd', extra ) = BudgetView.update msg model.budgetView
-        in case extra of
-          Nothing -> ( {model | budgetView = budgetView'}, cmd' )
-          Just cmd ->
-            ( {model | budgetView = budgetView'}
-            , Cmd.batch [cmd', Cmd.map BudgetView cmd] )
+        let ( budgetView, cmd, bvCmd ) = BudgetView.update msg model.budgetView
+        in  ( { model | budgetView = budgetView }
+            , Cmd.batch [ cmd, Cmd.map BudgetView bvCmd ]
+            )
 
       SyncFrom jsonForm ->
         -- decode json, determine which fields to update, modify model

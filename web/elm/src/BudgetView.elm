@@ -37,18 +37,18 @@ init addr =
 
 -- UPDATE
 
-update : Msg -> Model -> ( Model, Cmd msg, Maybe (Cmd Msg) )
+update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
 update msg model =
   case msg of
     Focus focus ->
       ( { model | focus = focus }
       , Cmd.none
-      , Nothing
+      , Cmd.none
       )
     Resize {width, height} ->
       ( { model | width = width }
       , Cmd.none
-      , Nothing
+      , Cmd.none
       )
 
 

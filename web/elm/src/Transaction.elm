@@ -63,28 +63,27 @@ validate transaction =
   ( True, "" )
 
 
-update : Msg -> Model -> ( Model, Cmd msg, Maybe (Cmd Msg) )
+update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
 update msg transaction =
-  case msg of
-    Show       -> ( {transaction | open = True}, Cmd.none, Nothing )
-    Hide       -> ( {transaction | open = False}, Cmd.none, Nothing )
-    Amount v   -> ( {transaction | amount = v}, Cmd.none, Nothing )
-    Payee v    -> ( {transaction | payee = v}, Cmd.none, Nothing )
-    Category v -> ( {transaction | category = v}, Cmd.none, Nothing )
-    Account v  -> ( {transaction | account = v}, Cmd.none, Nothing )
-    Note v     -> ( {transaction | note = v}, Cmd.none, Nothing )
-    Date v     -> ( {transaction | date = v}, Cmd.none, Nothing )
-    Today d ->
-      ( { transaction |
-          date = Date2.toString << Date2.split <| d }
-      , Cmd.none, Nothing )
+  let only = \model -> ( model, Cmd.none, Cmd.none )
+  in case msg of
+    Show       -> only { transaction | open = True }
+    Hide       -> only { transaction | open = False }
+    Amount v   -> only { transaction | amount = v }
+    Payee v    -> only { transaction | payee = v }
+    Category v -> only { transaction | category = v }
+    Account v  -> only { transaction | account = v }
+    Note v     -> only { transaction | note = v }
+    Date v     -> only { transaction | date = v }
+    Today d    -> only { transaction | date = Date2.toString << Date2.split <| d }
     Submit ->
       case validate transaction of
+        ( False, err ) -> only {transaction | error = err}
         ( True, json ) ->
           ( fst << init <| transaction.href
-          , WebSocket.send transaction.href json, Nothing )
-        ( False, err ) ->
-          ( {transaction | error = err}, Cmd.none, Nothing )
+          , WebSocket.send transaction.href json
+          , Cmd.none
+          )
 
 
 setHref : String -> Model -> Model
