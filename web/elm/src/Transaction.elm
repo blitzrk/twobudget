@@ -1,7 +1,8 @@
 module Transaction exposing (Model, Msg, init, update, view, setHref)
 
-import Date
+import Date exposing (Date)
 import Date.Extra as Date2
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onInput, onClick)
@@ -14,44 +15,30 @@ import WebSocket
 -- MODEL
 
 type alias Model =
-  { amount   : String
-  , payee    : String
-  , category : String
-  , account  : String
-  , date     : String
-  , note     : String
-  , open     : Bool
-  , error    : String
-  , href     : String
+  { form  : Dict String String
+  , open  : Bool
+  , error : Maybe String
+  , href  : String
   }
 
 
 type Msg
-  = Amount String
-  | Payee String
-  | Category String
-  | Account String
-  | Date String
-  | Note String
+  = Reset ()
+  | Set String String
+  | Today Date
   | Show
   | Hide
-  | Today Date.Date
   | Submit
 
 
 init : String -> ( Model, Cmd Msg )
 init addr =
-  ( { amount   = ""
-    , payee    = ""
-    , category = ""
-    , account  = ""
-    , date     = "1970-01-01"
-    , note     = ""
-    , open     = False
-    , error    = ""
-    , href     = addr
+  ( { form  = Dict.empty
+    , open  = False
+    , error = Nothing
+    , href  = addr
     }
-  , Task.perform Today Today Date.now
+  , Task.perform Debug.crash Today Date.now
   )
 
 
@@ -66,23 +53,24 @@ validate transaction =
 update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
 update msg transaction =
   let only = \model -> ( model, Cmd.none, Cmd.none )
+      chain msg str =
+        ( transaction
+        , Cmd.none
+        , Task.perform Debug.crash msg (Task.succeed str)
+        )
   in case msg of
-    Show       -> only { transaction | open = True }
-    Hide       -> only { transaction | open = False }
-    Amount v   -> only { transaction | amount = v }
-    Payee v    -> only { transaction | payee = v }
-    Category v -> only { transaction | category = v }
-    Account v  -> only { transaction | account = v }
-    Note v     -> only { transaction | note = v }
-    Date v     -> only { transaction | date = v }
-    Today d    -> only { transaction | date = Date2.toString << Date2.split <| d }
+    Reset () -> let (model, cmd) = init transaction.href in (model, Cmd.none, cmd)
+    Set k v  -> only { transaction | form = transaction.form |> Dict.insert k v }
+    Today d  -> chain (Set "date") (Date2.toString <| Date2.split d)
+    Show     -> only { transaction | open = True }
+    Hide     -> only { transaction | open = False }
     Submit ->
       case validate transaction of
-        ( False, err ) -> only {transaction | error = err}
+        ( False, err ) -> only {transaction | error = Just err}
         ( True, json ) ->
           ( fst << init <| transaction.href
           , WebSocket.send transaction.href json
-          , Cmd.none
+          , Task.perform Debug.crash Reset (Task.succeed ())
           )
 
 
@@ -95,8 +83,9 @@ setHref href transaction =
 -- VIEW
 
 view : Model -> Html Msg
-view {amount, payee, category, account, date, note, open} =
+view {form, open} =
   let
+    value' field = value <| Maybe.withDefault "" (form |> Dict.get field)
     tButton =
       if open
          then button [ onClick Hide ] [ text "-" ]
@@ -108,27 +97,27 @@ view {amount, payee, category, account, date, note, open} =
       , Html.form [ style [("display", if open then "block" else "none")] ]
         [ tr []
           [ td [] [ label [] [ text "Amount: " ] ]
-          , td [] [ input [type' "number", onInput Amount, value amount ] [] ]
+          , td [] [ input [type' "number", onInput (Set "amount"), value' "amount" ] [] ]
           ]
         , tr []
           [ td [] [ label [] [ text "Payee: " ] ]
-          , td [] [ input [ onInput Payee, value payee ] [] ]
+          , td [] [ input [ onInput (Set "payee"), value' "payee" ] [] ]
           ]
         , tr []
           [ td [] [ label [] [ text "Category: " ] ]
-          , td [] [ input [ onInput Category, value category ] [] ]
+          , td [] [ input [ onInput (Set "category"), value' "category" ] [] ]
           ]
         , tr []
           [ td [] [ label [] [ text "Account: " ] ]
-          , td [] [ input [ onInput Account, value account ] [] ]
+          , td [] [ input [ onInput (Set "account"), value' "account" ] [] ]
           ]
         , tr []
           [ td [] [ label [] [ text "Date: " ] ]
-          , td [] [ input [ type' "date", onInput Date, value date ] [] ]
+          , td [] [ input [ type' "date", onInput (Set "date"), value' "date" ] [] ]
           ]
         , tr []
           [ td [] [ label [] [ text "Note: " ] ]
-          , td [] [ input [ onInput Note, value note ] [] ]
+          , td [] [ input [ onInput (Set "note"), value' "note" ] [] ]
           ]
         , tr [] [ button [onClick Submit] [text "Submit"] ]
         ]
