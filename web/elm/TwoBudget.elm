@@ -104,7 +104,10 @@ wsAddr username jwt =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none -- WebSocket.listen (wsAddr model.user.name model.user.jwt) SyncFrom
+  Sub.batch
+    [ Sub.map BudgetView (BudgetView.subscriptions model.budgetView)
+    --, WebSocket.listen (wsAddr model.user.name model.user.jwt) SyncFrom
+    ]
 
 
 

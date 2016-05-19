@@ -1,4 +1,4 @@
-module BudgetView exposing (Model, Msg, init, update, view)
+module BudgetView exposing (Model, Msg, init, update, subscriptions, view)
 
 import Budget
 
@@ -6,6 +6,8 @@ import Html exposing (..)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onBlur)
 import Task
+import WebSocket
+import Window
 
 
 
@@ -20,8 +22,8 @@ type alias Model =
 
 
 type Msg
-  = Init ()
-  | Focus
+  = Focus Int
+  | Resize Window.Size
 
 
 
@@ -29,7 +31,7 @@ type Msg
 
 init : String -> ( Model, Cmd Msg )
 init addr =
-  ( Model 0 [] 0 addr, Task.perform Debug.crash Init (Task.succeed ()) )
+  ( Model 0 [] 0 addr, Task.perform Debug.crash Resize Window.size )
 
 
 
@@ -37,7 +39,27 @@ init addr =
 
 update : Msg -> Model -> ( Model, Cmd msg, Maybe (Cmd Msg) )
 update msg model =
-  ( model, Cmd.none, Nothing )
+  case msg of
+    Focus focus ->
+      ( { model | focus = focus }
+      , Cmd.none
+      , Nothing
+      )
+    Resize {width, height} ->
+      ( { model | width = width }
+      , Cmd.none
+      , Nothing
+      )
+
+
+
+-- SUBSCRIPTIONS
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.batch
+    [ Window.resizes Resize
+    ]
 
 
 
@@ -45,4 +67,4 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  div [] []
+  div [] [text <| toString model.width]
