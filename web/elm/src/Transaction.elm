@@ -27,7 +27,6 @@ type Msg
   | Set String String
   | Today Date
   | Show
-  | Hide
   | Submit
 
 
@@ -63,7 +62,6 @@ update msg transaction =
     Set k v  -> only { transaction | form = transaction.form |> Dict.insert k v }
     Today d  -> chain (Set "date") (Date2.toString <| Date2.split d)
     Show     -> only { transaction | open = True }
-    Hide     -> only { transaction | open = False }
     Submit ->
       case validate transaction of
         ( False, err ) -> only {transaction | error = Just err}
@@ -80,35 +78,60 @@ setHref href transaction =
     href = href }
 
 
+
 -- VIEW
+
+(=>) = (,)
+
 
 view : Model -> Html Msg
 view {form, open} =
   let
-    value' field = value <| Maybe.withDefault "" (form |> Dict.get field)
+    value' field =
+      value <| Maybe.withDefault "" (form |> Dict.get field)
+
+    toLabel field =
+      (String.toUpper <| String.left 1 field) ++ (String.dropLeft 1 field) ++ ": "
+
+    fullwidth =
+      [ "width" => "320px" ]
+
     row attrs field =
       tr []
-         [ td [] [ label [] [ text <|
-                                (String.toUpper <| String.left 1 field) ++
-                                (String.dropLeft 1 field) ++ ": "
-                            ] ]
-         , td [] [ input (attrs ++ [ onInput (Set field), value' field ]) [] ]
+        [ td []
+          [ tr []
+            [ td [] [ label [] [ text <| toLabel field ] ] ]
+          , tr []
+            [ td [] [ input (attrs ++ [ onInput (Set field), value' field ]) [] ] ]
+          ]
          ]
     tButton =
       if open
-         then button [ onClick Hide ] [ text "-" ]
-         else button [ onClick Show ] [ text "+" ]
+         then button [ style fullwidth, onClick (Reset ()) ] [ text "Clear" ]
+         else button [ style fullwidth, onClick Show ] [ text "Add Transaction" ]
   in
-    section []
+    section
+      [ style 
+        [ "display" => "flex"
+        , "flex-direction" => "column"
+        , "margin-top" => "30px"
+        ]
+      ]
       [ tButton
-      , br [] []
-      , Html.form [ style [("display", if open then "block" else "none")] ]
-        [ row [type' "number"] "amount"
-        , row [] "payee"
-        , row [] "category"
-        , row [type' "date"] "date"
-        , row [] "note"
-        , tr [] [ button [onClick Submit] [text "Submit"] ]
+      , Html.form
+        [ style <| fullwidth ++
+          [ "display" => if open then "flex" else "none"
+          , "flex-direction" => "column"
+          , "align-items" => "center"
+          ]
+        ]
+        [ row [style fullwidth, type' "number"] "amount"
+        , row [style fullwidth] "payee"
+        , row [style fullwidth] "category"
+        , row [style fullwidth, type' "date"] "date"
+        , row [style fullwidth] "note"
+        , tr [style ["margin-top" => "30px"]]
+          [ button [style fullwidth, onClick Submit] [text "Submit"] ]
         ]
       ]
 

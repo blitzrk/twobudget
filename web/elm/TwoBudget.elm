@@ -111,5 +111,9 @@ view : Model -> Html Msg
 view model =
   main' []
     [ App.map BudgetView (BudgetView.view model.budgetView)
-    , App.map Transact (Transaction.view model.transaction)
+    , aside
+      [ style ["display" => "flex", "justify-content" => "center"]
+      ]
+      [ App.map Transact (Transaction.view model.transaction)
+      ]
     ]

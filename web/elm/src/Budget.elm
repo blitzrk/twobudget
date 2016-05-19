@@ -1,5 +1,6 @@
-module Budget exposing (Model, init, update, view)
+module Budget exposing (Model, Msg, init, update, subscriptions, view)
 
+import Date
 import Debug
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -13,7 +14,6 @@ import Task
 
 type alias Model =
   { title : String
-  , width : Int
   , start : Float
   , balance : Float
   , items : List (Int, Item)
@@ -39,15 +39,19 @@ type Msg
   | Normalize
 
 
-init : String -> Float -> Int -> Model
-init date budget width =
-  Model date width budget budget [(0, Item "" "" "" "")]
+init : (Date.Month, Int) -> Float -> Model
+init (month, year) budget =
+  Model
+    (toString month ++ " " ++ toString year)
+    budget
+    budget
+    [(0, Item "" "" "" "")]
 
 
 
 -- UPDATE
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
 update msg model =
   let alter i fn =
         { model |
@@ -93,22 +97,28 @@ update msg model =
   in case msg of
     Add ->
       let items' = (0, Item "" "" "" "") :: (List.map (\(i, it) -> (i + 1, it)) model.items)
-      in ( { model | items = items' }, Cmd.none )
+      in ( { model | items = items' }, Cmd.none, Cmd.none )
     Remove i ->
       let items' = List.filter (\(j, _) -> i /= j) model.items
-      in ( { model | items = items' }, Cmd.none )
+      in ( { model | items = items' }, Cmd.none, Cmd.none )
     InputName i name ->
-      ( alter i <| \it -> {it | name = String.trim name}, Cmd.none )
+      ( alter i <| \it -> {it | name = String.trim name}, Cmd.none, Cmd.none )
     InputAmnt i amnt ->
-      ( alter i <| \it -> {it | amnt = String.trim amnt}, Cmd.batch [send UpdateBalance (), send UpdateRemaining i] )
+      ( alter i <| \it -> {it | amnt = String.trim amnt}
+      , Cmd.none
+      , Cmd.batch [send UpdateBalance (), send UpdateRemaining i]
+      )
     InputSpnt i spnt ->
-      ( alter i <| \it -> {it | spnt = String.trim spnt}, send UpdateRemaining i )
+      ( alter i <| \it -> {it | spnt = String.trim spnt}
+      , Cmd.none
+      , send UpdateRemaining i
+      )
     UpdateBalance () ->
-      ( { model | balance = model.start - totalBudget }, Cmd.none )
+      ( { model | balance = model.start - totalBudget }, Cmd.none, Cmd.none )
     UpdateRemaining i ->
-      ( alter i <| \it -> {it | left = updateRemain it}, Cmd.none )
+      ( alter i <| \it -> {it | left = updateRemain it}, Cmd.none, Cmd.none )
     Normalize ->
-      ( { model | items = normalize model.items }, Cmd.none )
+      ( { model | items = normalize model.items }, Cmd.none, Cmd.none )
 
 
 -- SUBSCRIPTIONS
@@ -170,6 +180,7 @@ view model =
                     , "width" => "100%"
                     , "max-width" => "650px"
                     , "margin" => "auto"
+                    , "padding" => "15px"
                     , "border" => "1px solid black"
                     ]
             ] <|
