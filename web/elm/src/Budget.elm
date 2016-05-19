@@ -1,50 +1,188 @@
-module Budget exposing (Budget, init)
+module Budget exposing (Model, init, update, view)
 
+import Debug
 import Html exposing (..)
-import Html.Attributes exposing (style)
-import Html.Events exposing (onBlur)
-
+import Html.Attributes exposing (..)
+import Html.Events exposing (onClick, onInput, onBlur)
+import Result
+import String
+import Task
 
 
 -- MODEL
 
-type alias Item =
-  { itemName   : String
-  , prevBudget : Float
-  , currBudget : Float
-  , currSpent  : Float
-  , currRemain : Float
+type alias Model =
+  { title : String
+  , width : Int
+  , start : Float
+  , balance : Float
+  , items : List (Int, Item)
   }
 
 
-type alias Month = List Item
-
-
-type alias Budget =
-  { monthFocus : Int
-  , monthCache : List (Int, Month)
-  , width : Int
-  , addr : String
+type alias Item =
+  { name : String
+  , amnt : String
+  , spnt : String
+  , left : String
   }
 
 
 type Msg
-  = Update
+  = Add
+  | Remove Int
+  | InputName Int String
+  | InputAmnt Int String
+  | InputSpnt Int String
+  | UpdateBalance ()
+  | UpdateRemaining Int
+  | Normalize
 
 
-
--- INIT
-
-init : Int -> String -> Budget
-init width addr =
-  Budget 0 [] width addr
+init : String -> Float -> Int -> Model
+init date budget width =
+  Model date width budget budget [(0, Item "" "" "" "")]
 
 
 
 -- UPDATE
 
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+  let alter i fn =
+        { model |
+          items = List.map (\(j, it) ->
+                    if i == j
+                      then (i, fn it)
+                      else (j, it)) model.items }
+
+      send msg val =
+        Task.perform Debug.crash msg (Task.succeed val)
+
+      totalBudget =
+        List.foldl (
+          \(_, it) acc ->
+            case String.toFloat it.amnt of
+              Ok amnt -> if amnt > 0 then acc + amnt else acc
+              Err msg -> acc) 0 model.items
+      
+      updateRemain item =
+        case String.toFloat item.amnt of
+          Err msg -> ""
+          Ok amnt -> if amnt < 0 then "" else
+            case String.toFloat item.spnt of
+              Err msg -> ""
+              Ok spnt -> if spnt < 0 then "" else toDollar (amnt - spnt)
+
+      normalize items =
+        items |> List.map (\(i, it) ->
+          let 
+            norm s =
+              case String.toFloat s of
+                Err _ -> s
+                Ok num -> floatString num
+
+            it' =
+              { it |
+                name = String.trim it.name,
+                amnt = norm it.amnt,
+                spnt = norm it.spnt
+              }
+          in  (i, it'))
+  
+  in case msg of
+    Add ->
+      let items' = (0, Item "" "" "" "") :: (List.map (\(i, it) -> (i + 1, it)) model.items)
+      in ( { model | items = items' }, Cmd.none )
+    Remove i ->
+      let items' = List.filter (\(j, _) -> i /= j) model.items
+      in ( { model | items = items' }, Cmd.none )
+    InputName i name ->
+      ( alter i <| \it -> {it | name = String.trim name}, Cmd.none )
+    InputAmnt i amnt ->
+      ( alter i <| \it -> {it | amnt = String.trim amnt}, Cmd.batch [send UpdateBalance (), send UpdateRemaining i] )
+    InputSpnt i spnt ->
+      ( alter i <| \it -> {it | spnt = String.trim spnt}, send UpdateRemaining i )
+    UpdateBalance () ->
+      ( { model | balance = model.start - totalBudget }, Cmd.none )
+    UpdateRemaining i ->
+      ( alter i <| \it -> {it | left = updateRemain it}, Cmd.none )
+    Normalize ->
+      ( { model | items = normalize model.items }, Cmd.none )
+
+
+-- SUBSCRIPTIONS
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
+
+
+
 -- VIEW
 
-view : Budget -> Html Msg
+(=>) = (,)
+
+
+floatString : Float -> String
+floatString n =
+  let whole = truncate n
+      part = round <| abs (n - toFloat whole) * 100
+  in toString whole ++ "." ++ if part == 0 then "00" else if part < 10 then "0" else "" ++ toString part  
+
+
+toDollar : Float -> String
+toDollar n =
+  if n < 0
+    then "-$" ++ floatString (abs n)
+    else "$" ++ floatString n
+
+
+toRow : (Int, Item) -> Html Msg
+toRow (i, {name, amnt, spnt, left}) =
+  let
+    default = ["flex" => "1", "min-width" => "75px"]
+  in
+    div [style ["display" => "flex", "width" => "calc(100% - 10px)"]]
+      [ input [style default, onInput (InputName i), value name] []
+      , input [type' "number", style default, onInput (InputAmnt i), onBlur Normalize, value amnt] []
+      , input [type' "number", style default, onInput (InputSpnt i), onBlur Normalize, value spnt] []
+      , input [style default, disabled True, value left] []
+      , button [onClick (Remove i), style ["width" => "25px"]] [text "X"]
+      ]
+
+
+view : Model -> Html Msg
 view model =
-  div [] []
+  let
+    headers =
+      div [style ["display" => "flex", "width" => "calc(100% - 10px)", "text-align" => "center"]]
+          [ span [style ["flex" => "1"]] [text "Category"]
+          , span [style ["flex" => "1"]] [text "Amount"]
+          , span [style ["flex" => "1"]] [text "Spent"]
+          , span [style ["flex" => "1"]] [text "Remaining"]
+          , span [style ["width" => "25px"]] []
+          ]
+  in
+    section [ style [ "display" => "flex"
+                    , "flex-direction" => "column"
+                    , "align-items" => "center"
+                    , "width" => "100%"
+                    , "max-width" => "650px"
+                    , "margin" => "auto"
+                    , "border" => "1px solid black"
+                    ]
+            ] <|
+    [ span [] [text model.title]
+    , span []
+      [ text "Balance: "
+      , span [style ["color" => if model.balance < 0 then "red" else "green"]]
+        [ text <| toDollar model.balance ]
+      ]
+    , hr [ style ["width" => "100%"] ] []
+    , headers
+    ] ++ List.map toRow (List.reverse model.items) ++
+    [ br [] []
+    , button [onClick Add] [text "Add"]
+    ]
+

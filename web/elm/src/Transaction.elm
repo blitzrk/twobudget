@@ -1,4 +1,4 @@
-module Transaction exposing (Transaction, Msg, init, update, view, setHref)
+module Transaction exposing (Model, Msg, init, update, view, setHref)
 
 import Date
 import Date.Extra as Date2
@@ -13,7 +13,7 @@ import WebSocket
 
 -- MODEL
 
-type alias Transaction =
+type alias Model =
   { amount   : String
   , payee    : String
   , category : String
@@ -39,7 +39,7 @@ type Msg
   | Submit
 
 
-init : String -> ( Transaction, Cmd Msg )
+init : String -> ( Model, Cmd Msg )
 init addr =
   ( { amount   = ""
     , payee    = ""
@@ -58,12 +58,12 @@ init addr =
 
 -- UPDATE
 
-validate : Transaction -> (Bool, String)
+validate : Model -> (Bool, String)
 validate transaction =
   ( True, "" )
 
 
-update : Msg -> Transaction -> ( Transaction, Cmd msg, Maybe (Cmd Msg) )
+update : Msg -> Model -> ( Model, Cmd msg, Maybe (Cmd Msg) )
 update msg transaction =
   case msg of
     Show       -> ( {transaction | open = True}, Cmd.none, Nothing )
@@ -87,7 +87,7 @@ update msg transaction =
           ( {transaction | error = err}, Cmd.none, Nothing )
 
 
-setHref : String -> Transaction -> Transaction
+setHref : String -> Model -> Model
 setHref href transaction =
   { transaction |
     href = href }
@@ -95,7 +95,7 @@ setHref href transaction =
 
 -- VIEW
 
-view : Transaction -> Html Msg
+view : Model -> Html Msg
 view {amount, payee, category, account, date, note, open} =
   let
     tButton =

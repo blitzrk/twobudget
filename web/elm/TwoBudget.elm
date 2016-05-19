@@ -1,6 +1,8 @@
 module TwoBudget exposing (..)
 
-import Budget exposing (Budget)
+import BudgetView
+import Transaction
+
 import Date
 import Debug
 import Html exposing (..)
@@ -8,7 +10,6 @@ import Html.App as App
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Task
-import Transaction exposing (Transaction)
 import WebSocket
 
 
@@ -34,8 +35,8 @@ type TabView
 type alias Model =
   { user        : { name : String, jwt : String }
   , state       : TabView
-  , budget      : Budget
-  , transaction : Transaction
+  , budgetView  : BudgetView.Model
+  , transaction : Transaction.Model
   }
 
 
@@ -44,15 +45,18 @@ init user =
   let
     ws = wsAddr user.name user.jwt
     (transaction, tcmd) = Transaction.init ws
+    (budgetView, bvcmd) = BudgetView.init ws
     default =
-      -- { user = Nothing
       { user = user
-      , state = Overview
-      , budget = Budget.init 1 ws
+      , state = Budget
+      , budgetView = budgetView
       , transaction = transaction
       }
   in
-    (default, Cmd.batch [ Cmd.map Transact tcmd ])
+    (default, Cmd.batch
+                [ Cmd.map Transact tcmd
+                , Cmd.map BudgetView bvcmd
+                ])
 
 
 
@@ -61,6 +65,7 @@ init user =
 
 type Msg
   = Transact Transaction.Msg
+  | BudgetView BudgetView.Msg
   | SyncFrom String
 
 
@@ -75,6 +80,14 @@ update msg model =
           Just cmd ->
             ( {model | transaction = transaction'}
             , Cmd.batch [cmd', Cmd.map Transact cmd] )
+
+      BudgetView msg ->
+        let ( budgetView', cmd', extra ) = BudgetView.update msg model.budgetView
+        in case extra of
+          Nothing -> ( {model | budgetView = budgetView'}, cmd' )
+          Just cmd ->
+            ( {model | budgetView = budgetView'}
+            , Cmd.batch [cmd', Cmd.map BudgetView cmd] )
 
       SyncFrom jsonForm ->
         -- decode json, determine which fields to update, modify model
@@ -104,5 +117,6 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
   main' []
-    [ App.map Transact (Transaction.view model.transaction)
+    [ App.map BudgetView (BudgetView.view model.budgetView)
+    , App.map Transact (Transaction.view model.transaction)
     ]
