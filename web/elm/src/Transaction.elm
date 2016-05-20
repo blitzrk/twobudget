@@ -93,42 +93,43 @@ view {form, open} =
     toLabel field =
       (String.toUpper <| String.left 1 field) ++ (String.dropLeft 1 field) ++ ":"
 
-    fullwidth =
-      [ "width" => "320px" ]
-
     row attrs field =
-      label []
-        [ text <| toLabel field
-        , input (attrs ++ [ onInput (Set field), value' field ]) []
+      label [ style ["width" => "100%"] ]
+        [ span [ style ["display" => "block"] ] [ text <| toLabel field ]
+        , input (attrs ++
+          [ style ["width" => "100%"], onInput (Set field), value' field ])
+          []
         ]
 
     tButton =
       if open
-         then button [ style fullwidth, onClick (Reset ()) ] [ text "Clear" ]
-         else button [ style fullwidth, onClick Show ] [ text "Add Transaction" ]
+         then button [ onClick (Reset ()) ] [ text "Clear" ]
+         else button [ onClick Show ] [ text "Add Transaction" ]
   in
     section
       [ style 
         [ "display" => "flex"
         , "flex-direction" => "column"
         , "margin-top" => "30px"
+        , "width" => "320px"
         ]
       ]
       [ tButton
       , Html.form
-        [ style <| fullwidth ++
+        [ style
           [ "display" => if open then "flex" else "none"
           , "flex-direction" => "column"
-          , "align-items" => "center"
+          , "align-items" => "stretch"
+          , "width" => "100%"
           ]
         ]
-        [ row [style fullwidth, type' "number"] "amount"
-        , row [style fullwidth] "payee"
-        , row [style fullwidth] "category"
-        , row [style fullwidth, type' "date"] "date"
-        , row [style fullwidth] "note"
+        [ "amount"   |> row [ type' "number" ]
+        , "payee"    |> row []
+        , "category" |> row []
+        , "date"     |> row [ type' "date" ]
+        , "note"     |> row []
         , button
-          [ style (fullwidth ++ ["margin-top" => "20px"]), onClick Submit ]
+          [ style ["margin-top" => "20px"], onClick Submit ]
           [ text "Submit" ]
         ]
       ]
