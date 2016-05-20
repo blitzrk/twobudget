@@ -91,20 +91,17 @@ view {form, open} =
       value <| Maybe.withDefault "" (form |> Dict.get field)
 
     toLabel field =
-      (String.toUpper <| String.left 1 field) ++ (String.dropLeft 1 field) ++ ": "
+      (String.toUpper <| String.left 1 field) ++ (String.dropLeft 1 field) ++ ":"
 
     fullwidth =
       [ "width" => "320px" ]
 
     row attrs field =
-      tr []
-        [ td []
-          [ tr []
-            [ td [] [ label [] [ text <| toLabel field ] ] ]
-          , tr []
-            [ td [] [ input (attrs ++ [ onInput (Set field), value' field ]) [] ] ]
-          ]
-         ]
+      label []
+        [ text <| toLabel field
+        , input (attrs ++ [ onInput (Set field), value' field ]) []
+        ]
+
     tButton =
       if open
          then button [ style fullwidth, onClick (Reset ()) ] [ text "Clear" ]
@@ -130,8 +127,9 @@ view {form, open} =
         , row [style fullwidth] "category"
         , row [style fullwidth, type' "date"] "date"
         , row [style fullwidth] "note"
-        , tr [style ["margin-top" => "30px"]]
-          [ button [style fullwidth, onClick Submit] [text "Submit"] ]
+        , button
+          [ style (fullwidth ++ ["margin-top" => "20px"]), onClick Submit ]
+          [ text "Submit" ]
         ]
       ]
 
