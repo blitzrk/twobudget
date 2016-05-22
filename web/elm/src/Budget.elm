@@ -34,8 +34,7 @@ type Msg
   | InputName Int String
   | InputAmnt Int String
   | InputSpnt Int String
-  | UpdateBalance ()
-  | UpdateRemaining Int
+  | Update Int
   | Normalize
 
 
@@ -75,7 +74,7 @@ update msg model =
           Err msg -> ""
           Ok amnt -> if amnt < 0 then "" else
             case String.toFloat item.spnt of
-              Err msg -> ""
+              Err msg -> toDollar amnt
               Ok spnt -> if spnt < 0 then "" else toDollar (amnt - spnt)
 
       normalize items =
@@ -106,19 +105,20 @@ update msg model =
     InputAmnt i amnt ->
       ( alter i <| \it -> {it | amnt = String.trim amnt}
       , Cmd.none
-      , Cmd.batch [send UpdateBalance (), send UpdateRemaining i]
+      , send Update i
       )
     InputSpnt i spnt ->
       ( alter i <| \it -> {it | spnt = String.trim spnt}
       , Cmd.none
-      , send UpdateRemaining i
+      , send Update i
       )
-    UpdateBalance () ->
-      ( { model | balance = model.start - totalBudget }, Cmd.none, Cmd.none )
-    UpdateRemaining i ->
-      ( alter i <| \it -> {it | left = updateRemain it}, Cmd.none, Cmd.none )
+    Update i ->
+      let model' = alter i <| \it -> { it | left = updateRemain it }
+          balance = model.start - totalBudget
+      in ( { model' | balance = balance }, Cmd.none, Cmd.none )
     Normalize ->
       ( { model | items = normalize model.items }, Cmd.none, Cmd.none )
+
 
 
 -- SUBSCRIPTIONS

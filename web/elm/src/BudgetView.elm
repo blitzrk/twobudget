@@ -67,8 +67,8 @@ update msg model =
                     (\(m',b) -> if m == m' then (m',b') else (m',b))
                     model.cache
                 }
-              , Cmd.none
-              , Cmd.none
+              , cmd
+              , bCmd |> Cmd.map (Budget m)
               )
         _ -> ( model, Cmd.none, Cmd.none )
 
