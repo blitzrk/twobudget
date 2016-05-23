@@ -35,7 +35,7 @@ type Msg
   | InputAmnt Int String
   | InputSpnt Int String
   | Update Int
-  | Normalize
+  | Normalize Int
 
 
 init : (Date.Month, Int) -> Float -> Model
@@ -77,21 +77,17 @@ update msg model =
               Err msg -> toDollar amnt
               Ok spnt -> if spnt < 0 then "" else toDollar (amnt - spnt)
 
-      normalize items =
-        items |> List.map (\(i, it) ->
-          let 
-            norm s =
-              case String.toFloat s of
-                Err _ -> s
-                Ok num -> floatString num
-
-            it' =
-              { it |
-                name = String.trim it.name,
-                amnt = norm it.amnt,
-                spnt = norm it.spnt
-              }
-          in  (i, it'))
+      normalize i =
+        let 
+          norm s =
+            case String.toFloat s of
+              Err _ -> s
+              Ok num -> floatString num
+        in
+          model.items |> List.map (\(j, it) ->
+            if i == j
+              then (i, { it | amnt = norm it.amnt, spnt = norm it.spnt })
+              else (j, it))
   
   in case msg of
     Add ->
@@ -103,21 +99,15 @@ update msg model =
     InputName i name ->
       ( alter i <| \it -> {it | name = String.trim name}, Cmd.none, Cmd.none )
     InputAmnt i amnt ->
-      ( alter i <| \it -> {it | amnt = String.trim amnt}
-      , Cmd.none
-      , send Update i
-      )
+      ( alter i <| \it -> {it | amnt = String.trim amnt}, Cmd.none, send Update i )
     InputSpnt i spnt ->
-      ( alter i <| \it -> {it | spnt = String.trim spnt}
-      , Cmd.none
-      , send Update i
-      )
+      ( alter i <| \it -> {it | spnt = String.trim spnt}, Cmd.none, send Update i )
     Update i ->
       let model' = alter i <| \it -> { it | left = updateRemain it }
           balance = model.start - totalBudget
       in ( { model' | balance = balance }, Cmd.none, Cmd.none )
-    Normalize ->
-      ( { model | items = normalize model.items }, Cmd.none, Cmd.none )
+    Normalize i ->
+      ( { model | items = normalize i }, Cmd.none, Cmd.none )
 
 
 
@@ -155,8 +145,8 @@ toRow (i, {name, amnt, spnt, left}) =
   in
     div [style ["display" => "flex", "width" => "calc(100% - 10px)"]]
       [ input [style default, onInput (InputName i), value name] []
-      , input [type' "number", style default, onInput (InputAmnt i), onBlur Normalize, value amnt] []
-      , input [type' "number", style default, onInput (InputSpnt i), onBlur Normalize, value spnt] []
+      , input [type' "number", style default, onInput (InputAmnt i), onBlur (Normalize i), value amnt] []
+      , input [type' "number", style default, onInput (InputSpnt i), onBlur (Normalize i), value spnt] []
       , input [style default, disabled True, value left] []
       , button [onClick (Remove i), style ["width" => "25px"]] [text "X"]
       ]
