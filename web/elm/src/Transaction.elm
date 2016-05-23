@@ -1,9 +1,11 @@
 module Transaction exposing (Model, Msg, init, update, view, setHref)
 
+import Calendar
 import Date exposing (Date)
-import Date.Extra as Date2
+import Date.Extra as DateString
 import Dict exposing (Dict)
 import Html exposing (..)
+import Html.App as App
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onInput, onClick)
 import String
@@ -19,6 +21,7 @@ type alias Model =
   , open  : Bool
   , error : Maybe String
   , href  : String
+  , calendar : Calendar.Model
   }
 
 
@@ -28,17 +31,23 @@ type Msg
   | Today Date
   | Show
   | Submit
+  | Calendar Calendar.Msg
 
 
 init : String -> ( Model, Cmd Msg )
 init addr =
-  ( { form  = Dict.empty
-    , open  = False
-    , error = Nothing
-    , href  = addr
-    }
-  , Task.perform Debug.crash Today Date.now
-  )
+  let (cal, calCmd) = Calendar.init
+  in  ( { form  = Dict.empty
+        , open  = False
+        , error = Nothing
+        , href  = addr
+        , calendar = cal
+        }
+      , Cmd.batch
+        [ Task.perform Debug.crash Today Date.now
+        , Cmd.map Calendar calCmd
+        ]
+      )
 
 
 
@@ -60,7 +69,7 @@ update msg transaction =
   in case msg of
     Reset () -> let (model, cmd) = init transaction.href in (model, Cmd.none, cmd)
     Set k v  -> only { transaction | form = transaction.form |> Dict.insert k v }
-    Today d  -> chain (Set "date") (Date2.toString <| Date2.split d)
+    Today d  -> chain (Set "date") (DateString.fromDate d)
     Show     -> only { transaction | open = True }
     Submit ->
       case validate transaction of
@@ -70,6 +79,12 @@ update msg transaction =
           , WebSocket.send transaction.href json
           , Task.perform Debug.crash Reset (Task.succeed ())
           )
+    Calendar msg ->
+      let (calendar', cmd, cCmd) = Calendar.update msg transaction.calendar
+      in  ( { transaction | calendar = calendar' }
+          , cmd
+          , Cmd.map Calendar cCmd
+        )
 
 
 setHref : String -> Model -> Model
@@ -85,7 +100,7 @@ setHref href transaction =
 
 
 view : Model -> Html Msg
-view {form, open} =
+view {form, open, calendar} =
   let
     value' field =
       value <| Maybe.withDefault "" (form |> Dict.get field)
@@ -132,5 +147,6 @@ view {form, open} =
           [ style ["margin-top" => "20px"], onClick Submit ]
           [ text "Submit" ]
         ]
+      , App.map Calendar (Calendar.view calendar)
       ]
 

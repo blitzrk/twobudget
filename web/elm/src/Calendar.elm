@@ -1,7 +1,7 @@
-module Calendar exposing (Calendar, Msg, init, update, view)
+module Calendar exposing (Model, Msg, init, update, view)
 
 import Date exposing (Date)
-import Date.Extra as Date2 exposing (weekPos, daysInMonth)
+import Date.Extra as DateString
 import Debug
 import Html as H exposing (..)
 import Html.App as Html
@@ -18,7 +18,7 @@ type alias Model = Date
 init : ( Model, Cmd Msg )
 init =
   let epoch = Date.fromTime 0
-  in  ( epoch, Task.perform Set Set Date.now )
+  in  ( epoch, Task.perform Debug.crash Set Date.now )
 
 
 
@@ -31,52 +31,25 @@ type Msg
   | Prev
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
 update msg model =
-  let changeMonth delta date =
-        date
-          |> Date2.split
-          |> changeMonthHelp delta
-          |> Date2.toString
-          |> \d -> d ++ " 12:00"
-          |> Date.fromString
-      changeMonthHelp delta (y, m, d) =
-        let
-          (year, month) =
-            case m of
-              1  -> if delta < 0 then (y - 1, 12) else (y, m + delta)
-              12 -> if delta > 0 then (y + 1, 1)  else (y, m + delta)
-              _  -> (y, m + delta)
-          datestring =
-            Date2.toString (year, month, 1) ++ " 12:00"
-          day =
-            case Date.fromString datestring of
-              Ok date -> Basics.min d (daysInMonth date)
+  let incDate delta date =
+        case date |> DateString.fromDate |> DateString.add delta of
+          Err msg -> Debug.crash msg
+          Ok dstr ->
+            case DateString.toLocalDate dstr of
               Err msg -> Debug.crash msg
-        in
-          (year, month, day)
+              Ok date' -> date'
   in case msg of
     Set date ->
-      ( date, Cmd.none )
+      ( date, Cmd.none, Cmd.none )
     Select i ->
-      let date =
-        model
-          |> Date2.split
-          |> (\(y, m, d) -> (y, m, i))
-          |> Date2.toString
-          |> \d -> d ++ " 12:00"
-          |> Date.fromString
-      in case date of
-        Ok date -> ( date, Cmd.none)
-        Err msg -> ( model, Cmd.none )
+      let d = Date.day model
+      in  ( model |> incDate (0, 0, i - d), Cmd.none, Cmd.none )
     Next ->
-      case changeMonth 1 model of
-        Ok date -> ( date , Cmd.none)
-        Err msg -> ( model , Cmd.none )
+      ( model |> incDate (0, 1, 0), Cmd.none, Cmd.none )
     Prev ->
-      case changeMonth -1 model of
-        Ok date -> ( date , Cmd.none)
-        Err msg -> ( model , Cmd.none )
+      ( model |> incDate (0, -1, 0), Cmd.none, Cmd.none )
 
 
 
@@ -85,7 +58,7 @@ update msg model =
 viewMonth : Date -> Html Msg
 viewMonth date =
   let
-    posOfFirst = (weekPos date - Date.day date + 1) % 7
+    posOfFirst = (DateString.weekPos date - Date.day date + 1) % 7
     week start current max =
       let leftPad = List.map (always <| td [] [text ""]) [0..posOfFirst-1]
           elementStyle i = style <| [("text-align","center")] ++
@@ -101,7 +74,7 @@ viewMonth date =
             (tr [] (List.map toElement [0..Basics.min 6 (max-start)]))
             :: week (start + 7) current max
           else []
-    weeks = week 1 (Date.day date) (daysInMonth date)
+    weeks = week 1 (Date.day date) (DateString.daysInMonth date)
   in table [style [("cursor","default"), ("width","100%")]] <|
      [ tr [] <|
        List.map (\day -> td [style [("text-align","center")]] [text day])
