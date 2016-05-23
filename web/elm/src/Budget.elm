@@ -2,6 +2,7 @@ module Budget exposing (Model, Msg, init, update, subscriptions, view)
 
 import Date
 import Debug
+import Float.Extra as Float
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onBlur)
@@ -54,10 +55,12 @@ update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
 update msg model =
   let alter i fn =
         { model |
-          items = List.map (\(j, it) ->
-                    if i == j
-                      then (i, fn it)
-                      else (j, it)) model.items }
+          items = model.items |>
+            List.map (\(j, it) ->
+              if i == j
+                then (i, fn it)
+                else (j, it))
+        }
 
       send msg val =
         Task.perform Debug.crash msg (Task.succeed val)
@@ -74,15 +77,15 @@ update msg model =
           Err msg -> ""
           Ok amnt -> if amnt < 0 then "" else
             case String.toFloat item.spnt of
-              Err msg -> toDollar amnt
-              Ok spnt -> if spnt < 0 then "" else toDollar (amnt - spnt)
+              Err msg -> Float.toDollar amnt
+              Ok spnt -> if spnt < 0 then "" else Float.toDollar (amnt - spnt)
 
       normalize i =
         let 
           norm s =
             case String.toFloat s of
               Err _ -> s
-              Ok num -> floatString num
+              Ok num -> num |> Float.toFixed 2
         in
           model.items |> List.map (\(j, it) ->
             if i == j
@@ -122,20 +125,6 @@ subscriptions model =
 -- VIEW
 
 (=>) = (,)
-
-
-floatString : Float -> String
-floatString n =
-  let whole = truncate n
-      part = round <| abs (n - toFloat whole) * 100
-  in toString whole ++ "." ++ if part == 0 then "00" else if part < 10 then "0" else "" ++ toString part  
-
-
-toDollar : Float -> String
-toDollar n =
-  if n < 0
-    then "-$" ++ floatString (abs n)
-    else "$" ++ floatString n
 
 
 toRow : (Int, Item) -> Html Msg
@@ -178,7 +167,7 @@ view model =
     , span []
       [ text "Balance: "
       , span [style ["color" => if model.balance < 0 then "red" else "green"]]
-        [ text <| toDollar model.balance ]
+        [ text <| Float.toDollar model.balance ]
       ]
     , hr [ style ["width" => "100%"] ] []
     , headers
