@@ -2,7 +2,7 @@ module Transaction exposing (Model, Msg, init, update, view, setHref)
 
 import Calendar
 import Date exposing (Date)
-import Date.Extra as DateString
+import Date.Extra.String as DateString
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.App as App

@@ -1,7 +1,8 @@
 module Calendar exposing (Model, Msg, init, update, view)
 
 import Date exposing (Date)
-import Date.Extra as DateString
+import Date.Extra
+import Date.Extra.String as DateString
 import Debug
 import Html as H exposing (..)
 import Html.App as Html
@@ -58,7 +59,7 @@ update msg model =
 viewMonth : Date -> Html Msg
 viewMonth date =
   let
-    posOfFirst = (DateString.weekPos date - Date.day date + 1) % 7
+    posOfFirst = (Date.Extra.intDayOfWeek date - Date.day date + 1) % 7
     week start current max =
       let leftPad = List.map (always <| td [] [text ""]) [0..posOfFirst-1]
           elementStyle i = style <| [("text-align","center")] ++
@@ -74,7 +75,7 @@ viewMonth date =
             (tr [] (List.map toElement [0..Basics.min 6 (max-start)]))
             :: week (start + 7) current max
           else []
-    weeks = week 1 (Date.day date) (DateString.daysInMonth date)
+    weeks = week 1 (Date.day date) (Date.Extra.daysInMonth date)
   in table [style [("cursor","default"), ("width","100%")]] <|
      [ tr [] <|
        List.map (\day -> td [style [("text-align","center")]] [text day])
