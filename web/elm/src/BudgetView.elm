@@ -19,7 +19,7 @@ type alias Month = (Date.Month, Int)
 
 
 type alias Model =
-  { focus : Int
+  { focus : Month
   , cache : List (Month, Budget.Model)
   , width : Int
   , addr  : String
@@ -28,7 +28,7 @@ type alias Model =
 
 type Msg
   = Init Date
-  | Focus Int
+  | Focus Month
   | Resize Window.Size
   | Budget Month Budget.Msg
 
@@ -38,7 +38,7 @@ type Msg
 
 init : String -> ( Model, Cmd Msg )
 init addr =
-  ( Model 0 [] 0 addr
+  ( Model (Date.Jan, 1970) [] 0 addr
   , Cmd.batch
     [ Task.perform Debug.crash Resize Window.size
     , Task.perform Debug.crash Init Date.now
@@ -55,7 +55,11 @@ update msg model =
   in case msg of
     Init date ->
       let month = (Date.month date, Date.year date)
-      in  only { model | cache = [ (month, Budget.init month 500) ] }
+          (budget, cmd, bCmd) = Budget.init month 500
+      in  ( { model | cache = [ (month, budget) ] }
+          , cmd
+          , Cmd.map (Budget month) bCmd
+          )
     Focus focus    -> only { model | focus = focus }
     Resize {width} -> only { model | width = width }
     Budget m msg ->

@@ -1,4 +1,6 @@
-module BudgetList exposing (Model, Msg, init, update, view, add, sum)
+module BudgetList exposing
+  ( Model, Item, Msg, init, update, viewItem
+  , empty, cons, join, append, split, partition)
 
 import Debug
 import Float.Extra as Float
@@ -39,18 +41,41 @@ init =
   Model 0 [(0, Item "" "" "" "")]
 
 
+empty : Model
+empty =
+  Model 0 []
+
+
 
 -- API
 
-add : Model -> Model
-add model =
-  let items' = (0, Item "" "" "" "") :: (List.map (\(i, it) -> (i + 1, it)) model.items)
-  in { model | items = items' }
+cons : Item -> Model -> Model
+cons item ({total, items} as model) =
+  let items' = (0, item) :: (List.map (\(i,it) -> (i+1,it)) items)
+  in case String.toFloat item.amnt of
+    Err _ -> { model | items = items' }
+    Ok cost -> Model (total + cost) items'
 
 
-sum : Model -> Float
-sum model =
-  model.total
+join : Item -> (Model, Model) -> Model
+join item (left, right) =
+  left `append` (item `cons` right)
+
+
+append : Model -> Model -> Model
+append left right =
+  let items' = left.items ++ right.items |> List.indexedMap (\i (_,item) -> (i,item))
+  in Model (left.total + right.total) items'
+
+
+split : Int -> Model -> (Model, Model)
+split i model =
+  (model, model)
+
+
+partition : Int -> Model -> (Model, Model)
+partition i model =
+  (model, model)
 
 
 
@@ -79,7 +104,7 @@ update msg model =
               Ok spnt -> if spnt < 0 then "" else Float.toDollar (amnt - spnt)
 
       normalize i =
-        let 
+        let
           norm s =
             case String.toFloat s of
               Err _ -> s
@@ -89,7 +114,7 @@ update msg model =
             if i == j
               then (i, { it | amnt = norm it.amnt, spnt = norm it.spnt })
               else (j, it))
-  
+
   in case msg of
     Remove i ->
       let items' = List.filter (\(j, _) -> i /= j) model.items
@@ -118,13 +143,8 @@ update msg model =
 (=>) = (,)
 
 
-view : Model -> List (Html Msg)
-view model =
-    List.map viewHelp (List.reverse model.items)
-
-
-viewHelp : (Int, Item) -> Html Msg
-viewHelp (i, {name, amnt, spnt, left}) =
+viewItem : (Int, Item) -> Html Msg
+viewItem (i, {name, amnt, spnt, left}) =
   let
     default = ["flex" => "1", "min-width" => "75px"]
   in

@@ -1,6 +1,6 @@
 module Budget exposing (Model, Msg, init, update, subscriptions, view)
 
-import BudgetList
+import ReorderBudgetList
 
 import Date
 import Float.Extra as Float
@@ -16,22 +16,22 @@ type alias Model =
   { title : String
   , start : Float
   , balance : Float
-  , items : BudgetList.Model
+  , items : ReorderBudgetList.Model
   }
 
 
 type Msg
   = Add
-  | Items BudgetList.Msg
+  | Items ReorderBudgetList.Msg
 
 
-init : (Date.Month, Int) -> Float -> Model
+init : (Date.Month, Int) -> Float -> (Model, Cmd msg, Cmd Msg)
 init (month, year) budget =
-  Model
-    (toString month ++ " " ++ toString year)
-    budget
-    budget
-    BudgetList.init
+  let (list, cmd) = ReorderBudgetList.init
+  in  ( Model (toString month ++ " " ++ toString year) budget budget list
+      , Cmd.none
+      , Cmd.map Items cmd
+      )
 
 
 
@@ -41,13 +41,13 @@ update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
 update msg model =
   case msg of
     Add ->
-      ( { model | items = BudgetList.add model.items }
+      ( { model | items = ReorderBudgetList.add model.items }
       , Cmd.none
       , Cmd.none
       )
     Items msg ->
-      let (items', cmd, blCmd) = BudgetList.update msg model.items
-          balance' = model.start - BudgetList.sum items'
+      let (items', cmd, blCmd) = ReorderBudgetList.update msg model.items
+          balance' = model.start - ReorderBudgetList.sum items'
       in  ( { model | items = items', balance = balance' }
           , cmd
           , Cmd.map Items blCmd
@@ -98,7 +98,7 @@ view {title, start, balance, items} =
       ]
     , hr [ style ["width" => "100%"] ] []
     , headers
-    ] ++ List.map (App.map Items) (BudgetList.view items) ++
+    ] ++ [ App.map Items (ReorderBudgetList.view items) ] ++
     [ br [] []
     , button [onClick Add] [text "Add"]
     ]
