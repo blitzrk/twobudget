@@ -98,7 +98,7 @@ view {title, start, balance, items} =
       ]
     , hr [ style ["width" => "100%"] ] []
     , headers
-    ] ++ List.map (App.map Items) (BudgetList.view items) ++
+    ] ++ App.map Items (BudgetList.view items) ++
     [ br [] []
     , button [onClick Add] [text "Add"]
     ]

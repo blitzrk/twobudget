@@ -14,27 +14,27 @@ import Mouse exposing (Position)
 
 
 type alias Model model msg =
-    { drag : Maybe Drag
+    { drag : Maybe (Drag model)
     , items : (List (Item model), List (Item model))
     , updateItem : msg -> model -> model
     , viewItem : Item model -> Html Msg
     }
 
 
-type alias Drag =
-    { item : Item
+type alias Drag model =
+    { item : Item model
     , pos : Position
     }
 
 
 type alias Item a =
-    ( index : Int
+    { index : Int
     , value : a
     }
 
 
 init : (b -> a -> a) -> (a -> Html aMsg) -> 
-        List a -> ( Model a, Cmd msg, Cmd Msg )
+        List a -> ( Model a b, Cmd msg, Cmd Msg )
 init updateItem viewItem list =
   let list' = List.indexedMap (\i item -> Item i item)
   in  ( Model 
@@ -51,7 +51,7 @@ init updateItem viewItem list =
 -- API
 
 
-toList : Model a -> List a
+toList : Model a b -> List a
 toList {drag, items} =
   let (left, right) = items
   in case drag of
@@ -63,15 +63,15 @@ toList {drag, items} =
 -- UPDATE
 
 
-type Msg msg
-    = DragStart Item Position
+type Msg model msg
+    = DragStart (Item msg) Position
     | DragAt Position
     | DragEnd Position
     | Over Int
     | Value Int msg
 
 
-update : Msg msg -> Model a -> ( Model a, Cmd msg, Cmd Msg )
+update : Msg a c -> Model a b -> ( Model a b, Cmd msg, Cmd Msg )
 update msg ({updateItem} as model) =
   let items = toList model
   in case msg of
@@ -85,7 +85,7 @@ update msg ({updateItem} as model) =
       ( updateHelp msg model, Cmd.none, Cmd.none )
 
 
-updateHelp : Msg msg -> Model a -> Model a
+updateHelp : Msg a msg -> Model a b -> Model a b
 updateHelp msg ({drag, items} as model) =
   case msg of
     DragStart ({index} as item) xy ->
@@ -129,7 +129,7 @@ split i (left, right) =
        ([], [])
 
 
-join : Item -> (List (Item a), List (Item a)) -> (List (Item a), List (Item a))
+join : (Item a) -> (List (Item a), List (Item a)) -> (List (Item a), List (Item a))
 join mid (left, right) =
   ( left ++ (mid :: right), [] )
 
@@ -163,7 +163,7 @@ order (left, right) =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Model a -> Sub Msg
+subscriptions : Model a b -> Sub Msg
 subscriptions model =
   case model.drag of
     Nothing ->
@@ -180,7 +180,7 @@ subscriptions model =
 (=>) = (,)
 
 
-view : Model a -> Html Msg
+view : Model a b -> Html Msg
 view {drag, items, viewItem} =
   let
     (left, right) =
@@ -276,7 +276,7 @@ px number =
   toString number ++ "px"
 
 
-onMouseDown : Item -> Attribute Msg
+onMouseDown : (Item model) -> Attribute (Msg model msg)
 onMouseDown item =
   onWithOptions
     "mousedown"
