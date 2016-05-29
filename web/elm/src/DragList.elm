@@ -14,10 +14,11 @@ import Mouse exposing (Position)
 
 
 type alias Model model msg =
-    { drag : Maybe (Drag model)
+    { drag : Drag model
     , items : (List (Item model), List (Item model))
+    , initItem : model
     , updateItem : msg -> model -> model
-    , viewItem : Item model -> Html Msg
+    , viewItem : model -> Html msg
     }
 
 
@@ -27,19 +28,19 @@ type alias Drag model =
     }
 
 
-type alias Item a =
+type alias Item model =
     { index : Int
-    , value : a
+    , value : model
     }
 
 
-init : (b -> a -> a) -> (a -> Html aMsg) -> 
-        List a -> ( Model a b, Cmd msg, Cmd Msg )
-init updateItem viewItem list =
+init : a -> (b -> a -> a) -> (a -> Html aMsg) -> ( Model a b, Cmd msg, Cmd Msg )
+init initItem updateItem viewItem =
   let list' = List.indexedMap (\i item -> Item i item)
   in  ( Model 
           Nothing
-          (list, [])
+          (initItem, [])
+          initItem
           updateItem
           (\{index,value} -> viewItem App.map (Value index) value)
       , Cmd.none
@@ -64,14 +65,14 @@ toList {drag, items} =
 
 
 type Msg model msg
-    = DragStart (Item msg) Position
+    = DragStart (Item model) Position
     | DragAt Position
     | DragEnd Position
     | Over Int
     | Value Int msg
 
 
-update : Msg a c -> Model a b -> ( Model a b, Cmd msg, Cmd Msg )
+update : Msg a b -> Model a b -> ( Model a b, Cmd msg, Cmd (Msg a b) )
 update msg ({updateItem} as model) =
   let items = toList model
   in case msg of
@@ -85,7 +86,7 @@ update msg ({updateItem} as model) =
       ( updateHelp msg model, Cmd.none, Cmd.none )
 
 
-updateHelp : Msg a msg -> Model a b -> Model a b
+updateHelp : Msg a b -> Model a b -> Model a b
 updateHelp msg ({drag, items} as model) =
   case msg of
     DragStart ({index} as item) xy ->
