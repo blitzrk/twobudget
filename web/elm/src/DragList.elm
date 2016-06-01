@@ -14,7 +14,7 @@ import Mouse exposing (Position)
 
 
 type alias Model model msg =
-    { drag : Drag model
+    { drag : Maybe (Drag model)
     , items : (List (Item model), List (Item model))
     , initItem : model
     , updateItem : msg -> model -> model
@@ -72,15 +72,24 @@ type Msg model msg
     | Value Int msg
 
 
-update : Msg a b -> Model a b -> ( Model a b, Cmd msg, Cmd (Msg a b) )
-update msg ({updateItem} as model) =
-  let items = toList model
+--update : Msg a b -> Model a b -> ( Model a b, Cmd msg, Cmd (Msg a b) )
+update msg model =
+  let (left, right) = model.items
+      updateItem i msg = (\({index, value} as item) ->
+        if index /= i then (item, Cmd.none, Cmd.none)
+        else
+          let (v, cmd, vCmd) = model.updateItem msg value
+          in  (Item i v, cmd, Cmd.map (Value i) vCmd))
+
   in case msg of
     Value i msg ->
-      items |> List.map (\{index, value} ->
-        if index /= i then (Item index value, Cmd.none, Cmd.none)
-        else let (v, cmd, vCmd) = updateItem msg value
-          in (Item i v, cmd, Cmd.map (Value i) vCmd) )
+      let lefts = List.map (updateItem i msg) left
+          left' = List.map (\(a,_,_) -> a) lefts
+          rights = List.map (updateItem i msg) right
+          right' = List.map (\(a,_,_) -> a) rights
+          cmd = List.foldl (\(_,c,_) cs -> Cmd.batch [c, cs]) Cmd.none
+          iCmd = List.foldl (\(_,_,c) cs -> Cmd.batch [c, cs]) Cmd.none
+      in  ( { model | left = left', right = right' }, cmd, iCmd )
     
     _ ->
       ( updateHelp msg model, Cmd.none, Cmd.none )
