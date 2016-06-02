@@ -18,7 +18,7 @@ type alias Model model msg =
     , items : (List (Item model), List (Item model))
     , initItem : model
     , updateItem : msg -> model -> model
-    , viewItem : model -> Html msg
+    , viewItem : Item model -> Html (Msg model msg)
     }
 
 
@@ -34,18 +34,17 @@ type alias Item model =
     }
 
 
-init : a -> (b -> a -> a) -> (a -> Html aMsg) -> ( Model a b, Cmd msg, Cmd Msg )
+init : a -> (b -> a -> a) -> (a -> Html b) -> ( Model a b, Cmd msg, Cmd (Msg a b) )
 init initItem updateItem viewItem =
-  let list' = List.indexedMap (\i item -> Item i item)
-  in  ( Model 
-          Nothing
-          (initItem, [])
-          initItem
-          updateItem
-          (\{index,value} -> viewItem App.map (Value index) value)
-      , Cmd.none
-      , Cmd.none
-      )
+  ( Model 
+      Nothing
+      ([Item 0 initItem], [])
+      initItem
+      updateItem
+      (\{index,value} -> App.map (Value index) (viewItem value))
+  , Cmd.none
+  , Cmd.none
+  )
 
 
 
@@ -55,9 +54,10 @@ init initItem updateItem viewItem =
 toList : Model a b -> List a
 toList {drag, items} =
   let (left, right) = items
-  in case drag of
+  in (case drag of
     Nothing -> left ++ right
-    Just item -> left ++ (item :: right)
+    Just {item} -> left ++ (item :: right))
+  |> List.map (\{value} -> value)
 
 
 
