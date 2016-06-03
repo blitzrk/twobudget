@@ -72,14 +72,15 @@ type Msg model msg
     | Value Int msg
 
 
---update : Msg a b -> Model a b -> ( Model a b, Cmd msg, Cmd (Msg a b) )
+update : Msg a b -> Model a b -> ( Model a b, Cmd msg, Cmd (Msg a b) )
 update msg model =
   let (left, right) = model.items
-      updateItem i msg = (\({index, value} as item) ->
+
+      updateItem i msg ({index, value} as item) =
         if index /= i then (item, Cmd.none, Cmd.none)
         else
           let (v, cmd, vCmd) = model.updateItem msg value
-          in  (Item i v, cmd, Cmd.map (Value i) vCmd))
+          in  (Item i v, cmd, Cmd.map (Value i) vCmd)
 
   in case msg of
     Value i msg ->
@@ -89,7 +90,7 @@ update msg model =
           right' = List.map (\(a,_,_) -> a) rights
           cmd = List.foldl (\(_,c,_) cs -> Cmd.batch [c, cs]) Cmd.none
           iCmd = List.foldl (\(_,_,c) cs -> Cmd.batch [c, cs]) Cmd.none
-      in  ( { model | left = left', right = right' }, cmd, iCmd )
+      in  ( { model | items = (left', right') }, cmd, iCmd )
     
     _ ->
       ( updateHelp msg model, Cmd.none, Cmd.none )
