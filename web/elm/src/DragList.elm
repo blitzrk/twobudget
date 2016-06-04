@@ -72,21 +72,19 @@ type Msg model msg
     | Value Int msg
 
 
-update : Msg a b -> Model a b -> ( Model a b, Cmd msg, Cmd (Msg a b) )
+--update : Msg a b -> Model a b -> ( Model a b, Cmd msg, Cmd (Msg a b) )
 update msg model =
-  let (left, right) = model.items
-
-      updateItem i msg ({index, value} as item) =
-        if index /= i then (item, Cmd.none, Cmd.none)
-        else
-          let (v, cmd, vCmd) = model.updateItem msg value
-          in  (Item i v, cmd, Cmd.map (Value i) vCmd)
-
-  in case msg of
-    Value i msg ->
-      let lefts = List.map (updateItem i msg) left
+  case msg of
+    Value i vMsg ->
+      let applyMsg i m ({index, value} as item) =
+            if index /= i then (item, Cmd.none, Cmd.none)
+            else
+              let (v, cmd, vCmd) = model.updateItem m value
+              in  (Item i v, cmd, Cmd.map (Value i) vCmd)
+          (left, right) = model.items
+          lefts = List.map (applyMsg i vMsg) left
           left' = List.map (\(a,_,_) -> a) lefts
-          rights = List.map (updateItem i msg) right
+          rights = List.map (applyMsg i vMsg) right
           right' = List.map (\(a,_,_) -> a) rights
           cmd = List.foldl (\(_,c,_) cs -> Cmd.batch [c, cs]) Cmd.none
           iCmd = List.foldl (\(_,_,c) cs -> Cmd.batch [c, cs]) Cmd.none
@@ -174,7 +172,7 @@ order (left, right) =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Model a b -> Sub Msg
+subscriptions : Model a b -> Sub (Msg a b)
 subscriptions model =
   case model.drag of
     Nothing ->
@@ -191,7 +189,7 @@ subscriptions model =
 (=>) = (,)
 
 
-view : Model a b -> Html Msg
+view : Model a b -> Html (Msg a b)
 view {drag, items, viewItem} =
   let
     (left, right) =
@@ -287,7 +285,7 @@ px number =
   toString number ++ "px"
 
 
-onMouseDown : (Item model) -> Attribute (Msg model msg)
+onMouseDown : Item model -> Attribute (Msg model msg)
 onMouseDown item =
   onWithOptions
     "mousedown"
