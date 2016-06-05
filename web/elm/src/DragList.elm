@@ -1,4 +1,4 @@
-module DragList exposing (Model, Msg, init, update, subscriptions, view, toList)
+module DragList exposing (Model, Msg, Sig, init, update, subscriptions, view, toList)
 
 import Debug
 import Html exposing (..)
@@ -13,12 +13,17 @@ import Mouse exposing (Position)
 -- MODEL
 
 
-type alias Model model msg =
+type alias Model model msg m =
     { drag : Maybe (Drag model)
     , items : (List (Item model), List (Item model))
-    , initItem : model
-    , updateItem : msg -> model -> model
-    , viewItem : Item model -> Html (Msg model msg)
+    , struct : Sig model msg m
+    }
+
+
+type alias Sig model msg m =
+    { init : model
+    , update : msg -> model -> (model, Cmd m, Cmd msg)
+    , view : model -> Html msg
     }
 
 
@@ -34,14 +39,13 @@ type alias Item model =
     }
 
 
-init : a -> (b -> a -> a) -> (a -> Html b) -> ( Model a b, Cmd msg, Cmd (Msg a b) )
-init initItem updateItem viewItem =
-  ( Model 
+init : Sig a b c -> ( Model a b c, Cmd c, Cmd (Msg a b) )
+init struct =
+  ( Model
       Nothing
-      ([Item 0 initItem], [])
-      initItem
-      updateItem
-      (\{index,value} -> App.map (Value index) (viewItem value))
+      ([Item 0 struct.init], [])
+      struct
+      --(\{index,value} -> App.map (Value index) (viewItem value))
   , Cmd.none
   , Cmd.none
   )
@@ -51,7 +55,7 @@ init initItem updateItem viewItem =
 -- API
 
 
-toList : Model a b -> List a
+toList : Model a b c -> List a
 toList {drag, items} =
   let (left, right) = items
   in (case drag of
@@ -72,29 +76,29 @@ type Msg model msg
     | Value Int msg
 
 
---update : Msg a b -> Model a b -> ( Model a b, Cmd msg, Cmd (Msg a b) )
-update msg model =
+update : Msg a b -> Model a b c -> ( Model a b c, Cmd c, Cmd (Msg a b) )
+update msg ({struct} as model) =
   case msg of
     Value i vMsg ->
       let applyMsg i m ({index, value} as item) =
             if index /= i then (item, Cmd.none, Cmd.none)
             else
-              let (v, cmd, vCmd) = model.updateItem m value
+              let (v, cmd, vCmd) = struct.update m value
               in  (Item i v, cmd, Cmd.map (Value i) vCmd)
           (left, right) = model.items
           lefts = List.map (applyMsg i vMsg) left
           left' = List.map (\(a,_,_) -> a) lefts
           rights = List.map (applyMsg i vMsg) right
           right' = List.map (\(a,_,_) -> a) rights
-          cmd = List.foldl (\(_,c,_) cs -> Cmd.batch [c, cs]) Cmd.none
-          iCmd = List.foldl (\(_,_,c) cs -> Cmd.batch [c, cs]) Cmd.none
+          cmd = List.foldl (\(_,c,_) cs -> Cmd.batch [c, cs]) Cmd.none (lefts ++ rights)
+          iCmd = List.foldl (\(_,_,c) cs -> Cmd.batch [c, cs]) Cmd.none (lefts ++ rights)
       in  ( { model | items = (left', right') }, cmd, iCmd )
-    
+
     _ ->
       ( updateHelp msg model, Cmd.none, Cmd.none )
 
 
-updateHelp : Msg a b -> Model a b -> Model a b
+updateHelp : Msg a b -> Model a b c -> Model a b c
 updateHelp msg ({drag, items} as model) =
   case msg of
     DragStart ({index} as item) xy ->
@@ -121,7 +125,7 @@ updateHelp msg ({drag, items} as model) =
       { model |
         items = items |> partition i
       }
-    
+
     _ ->
       Debug.crash <| "Error: cannot handle message: " ++ toString msg
 
@@ -172,7 +176,7 @@ order (left, right) =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Model a b -> Sub (Msg a b)
+subscriptions : Model a b c -> Sub (Msg a b)
 subscriptions model =
   case model.drag of
     Nothing ->
@@ -189,8 +193,8 @@ subscriptions model =
 (=>) = (,)
 
 
-view : Model a b -> Html (Msg a b)
-view {drag, items, viewItem} =
+view : Model a b c -> Html (Msg a b)
+view {drag, items, struct} =
   let
     (left, right) =
       items
@@ -239,7 +243,7 @@ view {drag, items, viewItem} =
             , "align-items" => "center"
             ]
           ]
-          [ viewItem item ]
+          [ App.map (Value item.index) (struct.view item.value) ]
         ]
 
     toElement item =

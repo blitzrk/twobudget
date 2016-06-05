@@ -24,9 +24,8 @@ type Msg
   = InputName String
   | InputAmnt String
   | InputSpnt String
-  | Update
+  | Update ()
   | Normalize
-  | Remove
 
 
 init : Model
@@ -40,7 +39,7 @@ init =
 
 setSpent : Float -> Model -> Model
 setSpent num model =
-  { model | spnt = norm
+  { model | spnt = num |> toString |> norm }
 
 
 
@@ -62,15 +61,15 @@ update msg model =
   
   in case msg of
     InputName name ->
-      ( Just { model | name = String.trim name }, Cmd.none, Cmd.none )
+      ( { model | name = String.trim name }, Cmd.none, Cmd.none )
     InputAmnt amnt ->
-      ( Just { model | amnt = String.trim amnt }, Cmd.none, send Update i )
+      ( { model | amnt = String.trim amnt }, Cmd.none, send Update () )
     InputSpnt spnt ->
-      ( Just { model | spnt = String.trim spnt}, Cmd.none, send Update i )
-    Update ->
-      ( Just { model | left = updateRemain model }, Cmd.none, Cmd.none )
+      ( { model | spnt = String.trim spnt}, Cmd.none, send Update () )
+    Update () ->
+      ( { model | left = updateRemain model }, Cmd.none, Cmd.none )
     Normalize ->
-      ( Just { model | amnt = norm model.amnt, spnt = norm model.spnt }, Cmd.none, Cmd.none )
+      ( { model | amnt = norm model.amnt, spnt = norm model.spnt }, Cmd.none, Cmd.none )
 
 
 norm : String -> String
@@ -90,10 +89,10 @@ view {name, amnt, spnt, left} =
     default = ["flex" => "1", "min-width" => "75px"]
   in
     div [style ["display" => "flex", "width" => "calc(100% - 10px)"]]
-      [ input [style default, onInput (InputName i), value name] []
-      , input [type' "number", style default, onInput (InputAmnt i), onBlur (Normalize i), value amnt] []
-      , input [type' "number", style default, onInput (InputSpnt i), onBlur (Normalize i), value spnt] []
+      [ input [style default, onInput InputName, value name] []
+      , input [type' "number", style default, onInput InputAmnt, onBlur Normalize, value amnt] []
+      , input [type' "number", style default, onInput InputSpnt, onBlur Normalize, value spnt] []
       , input [style default, disabled True, value left] []
-      , button [onClick (Remove i), style ["width" => "25px"]] [text "X"]
+      --, button [onClick (Remove i), style ["width" => "25px"]] [text "X"]
       ]
 

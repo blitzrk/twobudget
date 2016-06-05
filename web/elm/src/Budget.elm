@@ -12,11 +12,11 @@ import Html.Events exposing (onClick)
 
 -- MODEL
 
-type alias Model =
+type alias Model a =
   { title : String
   , start : Float
   , balance : Float
-  , items : BudgetList.Model
+  , items : BudgetList.Model a
   }
 
 
@@ -25,7 +25,8 @@ type Msg
   | Items BudgetList.Msg
 
 
-init : (Date.Month, Int) -> Float -> Model
+-- TODO: Add side effects
+init : (Date.Month, Int) -> Float -> Model a
 init (month, year) budget =
   Model
     (toString month ++ " " ++ toString year)
@@ -37,7 +38,7 @@ init (month, year) budget =
 
 -- UPDATE
 
-update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
+update : Msg -> Model a -> ( Model a, Cmd msg, Cmd Msg )
 update msg model =
   case msg of
     Add ->
@@ -57,7 +58,7 @@ update msg model =
 
 -- SUBSCRIPTIONS
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model a -> Sub Msg
 subscriptions model =
   Sub.none
 
@@ -68,7 +69,7 @@ subscriptions model =
 (=>) = (,)
 
 
-view : Model -> Html Msg
+view : Model a -> Html Msg
 view {title, start, balance, items} =
   let
     headers =

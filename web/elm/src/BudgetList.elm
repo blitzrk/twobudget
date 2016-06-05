@@ -1,5 +1,6 @@
 module BudgetList exposing (Model, Msg, init, update, view, add, sum)
 
+import BudgetRow
 import DragList
 
 import Html exposing (..)
@@ -10,25 +11,31 @@ import Html.Attributes exposing (..)
 -- INIT
 
 
-type alias Model =
-  DragList BudgetRow BudgetRow.Msg
+type alias Model a =
+  DragList.Model BudgetRow.Model BudgetRow.Msg a
 
 
-init : Model
+type alias ListMsg =
+  DragList.Msg BudgetRow.Model BudgetRow.Msg
+
+
+init : (Model a, Cmd msg, Cmd Msg)
 init =
-  DragList.init
+  let (val, cmd, msg) = DragList.init <|
+    DragList.Sig BudgetRow.init BudgetRow.update BudgetRow.view
+  in (val, cmd, Cmd.map Subupdate msg)
 
 
 
 -- API
 
 
-add : Model -> Model
+add : Model a -> Model a
 add model =
   model
 
 
-sum : Model -> Float
+sum : Model a -> Float
 sum model =
   1.0
 
@@ -38,10 +45,10 @@ sum model =
 
 
 type Msg
-  = Reset
+  = Subupdate ListMsg
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model a -> Model a
 update msg model =
   model
 
@@ -50,6 +57,6 @@ update msg model =
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model a -> Html Msg
 view model =
   div [] [ text "Hello world!" ]
