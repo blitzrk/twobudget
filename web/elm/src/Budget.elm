@@ -25,14 +25,17 @@ type Msg
   | Items BudgetList.Msg
 
 
--- TODO: Add side effects
-init : (Date.Month, Int) -> Float -> Model a
+init : (Date.Month, Int) -> Float -> (Model a, Cmd msg, Cmd Msg)
 init (month, year) budget =
-  Model
-    (toString month ++ " " ++ toString year)
-    budget
-    budget
-    BudgetList.init
+  let (list, cmd, msg) = BudgetList.init
+  in  ( Model
+        (toString month ++ " " ++ toString year)
+        budget
+        budget
+        list
+      , cmd
+      , Cmd.map Items msg
+      )
 
 
 
@@ -99,7 +102,8 @@ view {title, start, balance, items} =
       ]
     , hr [ style ["width" => "100%"] ] []
     , headers
-    ] ++ App.map Items (BudgetList.view items) ++
+    ] ++ 
+    [App.map Items (BudgetList.view items)] ++
     [ br [] []
     , button [onClick Add] [text "Add"]
     ]

@@ -15,12 +15,13 @@ import Window
 
 -- MODEL
 
+
 type alias Month = (Date.Month, Int)
 
 
-type alias Model =
+type alias Model a =
   { focus : Int
-  , cache : List (Month, Budget.Model)
+  , cache : List (Month, Budget.Model a)
   , width : Int
   , addr  : String
   }
@@ -36,7 +37,7 @@ type Msg
 
 -- INIT
 
-init : String -> ( Model, Cmd Msg )
+init : String -> ( Model a, Cmd Msg )
 init addr =
   ( Model 0 [] 0 addr
   , Cmd.batch
@@ -49,13 +50,17 @@ init addr =
 
 -- UPDATE
 
-update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
+update : Msg -> Model a -> ( Model a, Cmd msg, Cmd Msg )
 update msg model =
-  let only model = ( model, Cmd.none, Cmd.none )
+  let only model' = ( model', Cmd.none, Cmd.none )
   in case msg of
     Init date ->
       let month = (Date.month date, Date.year date)
-      in  only { model | cache = [ (month, Budget.init month 500) ] }
+          (budget, cmd, msg) = Budget.init month 500
+      in  ( { model | cache = [ (month, budget) ] }
+          , cmd
+          , Cmd.map (Budget month) msg
+          )
     Focus focus    -> only { model | focus = focus }
     Resize {width} -> only { model | width = width }
     Budget m msg ->
@@ -76,7 +81,7 @@ update msg model =
 
 -- SUBSCRIPTIONS
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model a -> Sub Msg
 subscriptions model =
   Sub.batch
     [ Window.resizes Resize
@@ -86,7 +91,7 @@ subscriptions model =
 
 -- VIEW
 
-view : Model -> Html Msg
+view : Model a -> Html Msg
 view model =
   let
     a = 1

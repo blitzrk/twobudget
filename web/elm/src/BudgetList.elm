@@ -48,9 +48,9 @@ type Msg
   = Subupdate ListMsg
 
 
-update : Msg -> Model a -> Model a
+update : Msg -> Model a -> (Model a, Cmd msg, Cmd Msg)
 update msg model =
-  model
+  (model, Cmd.none, Cmd.none)
 
 
 
