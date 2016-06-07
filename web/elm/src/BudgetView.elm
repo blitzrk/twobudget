@@ -19,9 +19,9 @@ import Window
 type alias Month = (Date.Month, Int)
 
 
-type alias Model a =
+type alias Model =
   { focus : Int
-  , cache : List (Month, Budget.Model a)
+  , cache : List (Month, Budget.Model)
   , width : Int
   , addr  : String
   }
@@ -37,7 +37,7 @@ type Msg
 
 -- INIT
 
-init : String -> ( Model a, Cmd Msg )
+init : String -> ( Model, Cmd Msg )
 init addr =
   ( Model 0 [] 0 addr
   , Cmd.batch
@@ -50,38 +50,36 @@ init addr =
 
 -- UPDATE
 
-update : Msg -> Model a -> ( Model a, Cmd msg, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  let only model' = ( model', Cmd.none, Cmd.none )
+  let only model' = ( model', Cmd.none )
   in case msg of
     Init date ->
       let month = (Date.month date, Date.year date)
-          (budget, cmd, msg) = Budget.init month 500
+          (budget, cmd) = Budget.init month 500
       in  ( { model | cache = [ (month, budget) ] }
-          , cmd
-          , Cmd.map (Budget month) msg
+          , Cmd.map (Budget month) cmd
           )
     Focus focus    -> only { model | focus = focus }
     Resize {width} -> only { model | width = width }
     Budget m msg ->
       case List.filter ((==) m << fst) model.cache of
         (_, b) :: [] ->
-          let ( b', cmd, bCmd ) = Budget.update msg b
+          let ( b', cmd ) = Budget.update msg b
           in  ( { model |
                   cache = List.map
                     (\(m',b) -> if m == m' then (m',b') else (m',b))
                     model.cache
                 }
-              , cmd
-              , bCmd |> Cmd.map (Budget m)
+              , Cmd.map (Budget m) cmd
               )
-        _ -> ( model, Cmd.none, Cmd.none )
+        _ -> ( model, Cmd.none )
 
 
 
 -- SUBSCRIPTIONS
 
-subscriptions : Model a -> Sub Msg
+subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ Window.resizes Resize
@@ -91,7 +89,7 @@ subscriptions model =
 
 -- VIEW
 
-view : Model a -> Html Msg
+view : Model -> Html Msg
 view model =
   let
     a = 1

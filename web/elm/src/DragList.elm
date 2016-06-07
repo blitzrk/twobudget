@@ -13,16 +13,16 @@ import Mouse exposing (Position)
 -- MODEL
 
 
-type alias Model model msg m =
+type alias Model model msg =
     { drag : Maybe (Drag model)
     , items : (List (Item model), List (Item model))
-    , struct : Sig model msg m
+    , struct : Sig model msg
     }
 
 
-type alias Sig model msg m =
+type alias Sig model msg =
     { init : model
-    , update : msg -> model -> (model, Cmd m, Cmd msg)
+    , update : msg -> model -> (model, Cmd msg)
     , view : model -> Html msg
     }
 
@@ -39,14 +39,13 @@ type alias Item model =
     }
 
 
-init : Sig a b c -> ( Model a b c, Cmd c, Cmd (Msg a b) )
+init : Sig a b -> ( Model a b, Cmd (Msg a b) )
 init struct =
   ( Model
       Nothing
       ([Item 0 struct.init], [])
       struct
       --(\{index,value} -> App.map (Value index) (viewItem value))
-  , Cmd.none
   , Cmd.none
   )
 
@@ -55,7 +54,7 @@ init struct =
 -- API
 
 
-toList : Model a b c -> List a
+toList : Model a b -> List a
 toList {drag, items} =
   let (left, right) = items
   in (case drag of
@@ -76,29 +75,28 @@ type Msg model msg
     | Value Int msg
 
 
-update : Msg a b -> Model a b c -> ( Model a b c, Cmd c, Cmd (Msg a b) )
+update : Msg a b -> Model a b -> ( Model a b, Cmd (Msg a b) )
 update msg ({struct} as model) =
   case msg of
     Value i vMsg ->
       let applyMsg i m ({index, value} as item) =
-            if index /= i then (item, Cmd.none, Cmd.none)
+            if index /= i then (item, Cmd.none)
             else
-              let (v, cmd, vCmd) = struct.update m value
-              in  (Item i v, cmd, Cmd.map (Value i) vCmd)
+              let (v, cmd) = struct.update m value
+              in  (Item i v, Cmd.map (Value i) cmd)
           (left, right) = model.items
           lefts = List.map (applyMsg i vMsg) left
-          left' = List.map (\(a,_,_) -> a) lefts
+          left' = List.map (\(a,_) -> a) lefts
           rights = List.map (applyMsg i vMsg) right
-          right' = List.map (\(a,_,_) -> a) rights
-          cmd = List.foldl (\(_,c,_) cs -> Cmd.batch [c, cs]) Cmd.none (lefts ++ rights)
-          iCmd = List.foldl (\(_,_,c) cs -> Cmd.batch [c, cs]) Cmd.none (lefts ++ rights)
-      in  ( { model | items = (left', right') }, cmd, iCmd )
+          right' = List.map (\(a,_) -> a) rights
+          cmd = List.foldl (\(_,c) cs -> Cmd.batch [c, cs]) Cmd.none (lefts ++ rights)
+      in  ( { model | items = (left', right') }, cmd )
 
     _ ->
-      ( updateHelp msg model, Cmd.none, Cmd.none )
+      ( updateHelp msg model, Cmd.none )
 
 
-updateHelp : Msg a b -> Model a b c -> Model a b c
+updateHelp : Msg a b -> Model a b -> Model a b
 updateHelp msg ({drag, items} as model) =
   case msg of
     DragStart ({index} as item) xy ->
@@ -176,7 +174,7 @@ order (left, right) =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Model a b c -> Sub (Msg a b)
+subscriptions : Model a b -> Sub (Msg a b)
 subscriptions model =
   case model.drag of
     Nothing ->
@@ -193,7 +191,7 @@ subscriptions model =
 (=>) = (,)
 
 
-view : Model a b c -> Html (Msg a b)
+view : Model a b -> Html (Msg a b)
 view {drag, items, struct} =
   let
     (left, right) =

@@ -58,16 +58,15 @@ validate transaction =
   ( True, "" )
 
 
-update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg transaction =
-  let only = \model -> ( model, Cmd.none, Cmd.none )
+  let only = \model -> ( model, Cmd.none )
       chain msg str =
         ( transaction
-        , Cmd.none
         , Task.perform Debug.crash msg (Task.succeed str)
         )
   in case msg of
-    Reset () -> let (model, cmd) = init transaction.href in (model, Cmd.none, cmd)
+    Reset () -> let (model, cmd) = init transaction.href in (model, cmd)
     Set k v  -> only { transaction | form = transaction.form |> Dict.insert k v }
     Today d  -> chain (Set "date") (DateString.fromDate d)
     Show     -> only { transaction | open = True }
@@ -76,14 +75,13 @@ update msg transaction =
         ( False, err ) -> only {transaction | error = Just err}
         ( True, json ) ->
           ( fst << init <| transaction.href
-          , WebSocket.send transaction.href json
+          --, WebSocket.send transaction.href json
           , Task.perform Debug.crash Reset (Task.succeed ())
           )
     Calendar msg ->
-      let (calendar', cmd, cCmd) = Calendar.update msg transaction.calendar
+      let (calendar', cmd) = Calendar.update msg transaction.calendar
       in  ( { transaction | calendar = calendar' }
-          , cmd
-          , Cmd.map Calendar cCmd
+          , Cmd.map Calendar cmd
         )
 
 

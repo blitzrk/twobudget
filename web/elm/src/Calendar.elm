@@ -32,7 +32,7 @@ type Msg
   | Prev
 
 
-update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   let incDate delta date =
         case date |> DateString.fromDate |> DateString.add delta of
@@ -43,14 +43,14 @@ update msg model =
               Ok date' -> date'
   in case msg of
     Set date ->
-      ( date, Cmd.none, Cmd.none )
+      ( date, Cmd.none )
     Select i ->
       let d = Date.day model
-      in  ( model |> incDate (0, 0, i - d), Cmd.none, Cmd.none )
+      in  ( model |> incDate (0, 0, i - d), Cmd.none )
     Next ->
-      ( model |> incDate (0, 1, 0), Cmd.none, Cmd.none )
+      ( model |> incDate (0, 1, 0), Cmd.none )
     Prev ->
-      ( model |> incDate (0, -1, 0), Cmd.none, Cmd.none )
+      ( model |> incDate (0, -1, 0), Cmd.none )
 
 
 

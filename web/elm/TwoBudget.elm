@@ -32,15 +32,15 @@ type TabView
   | Overview
 
 
-type alias Model a =
+type alias Model =
   { user        : { name : String, jwt : String }
   , state       : TabView
-  , budgetView  : BudgetView.Model a
+  , budgetView  : BudgetView.Model
   , transaction : Transaction.Model
   }
 
 
-init : {name : String, jwt : String} -> ( Model a, Cmd Msg )
+init : {name : String, jwt : String} -> ( Model, Cmd Msg )
 init user =
   let
     ws = wsAddr user.name user.jwt
@@ -68,20 +68,20 @@ type Msg
   | BudgetView BudgetView.Msg
 
 
-update : Msg -> Model a -> ( Model a, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   let {name, jwt} = model.user
   in case msg of
       Transact msg ->
-        let ( transaction, cmd, trCmd ) = Transaction.update msg model.transaction
+        let ( transaction, cmd ) = Transaction.update msg model.transaction
         in  ( { model | transaction = transaction }
-            , Cmd.batch [ cmd, Cmd.map Transact trCmd ]
+            , Cmd.map Transact cmd
             )
 
       BudgetView msg ->
-        let ( budgetView, cmd, bvCmd ) = BudgetView.update msg model.budgetView
+        let ( budgetView, cmd ) = BudgetView.update msg model.budgetView
         in  ( { model | budgetView = budgetView }
-            , Cmd.batch [ cmd, Cmd.map BudgetView bvCmd ]
+            , Cmd.map BudgetView cmd
             )
 
 
@@ -93,7 +93,7 @@ wsAddr username jwt =
   "ws://home.krieg.io/" ++ username ++ "?token=" ++ jwt
 
 
-subscriptions : Model a -> Sub Msg
+subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
     [ Sub.map BudgetView (BudgetView.subscriptions model.budgetView)
@@ -107,7 +107,7 @@ subscriptions model =
 (=>) = (,)
 
 
-view : Model a -> Html Msg
+view : Model -> Html Msg
 view model =
   main' []
     [ App.map BudgetView (BudgetView.view model.budgetView)

@@ -12,11 +12,11 @@ import Html.Events exposing (onClick)
 
 -- MODEL
 
-type alias Model a =
+type alias Model =
   { title : String
   , start : Float
   , balance : Float
-  , items : BudgetList.Model a
+  , items : BudgetList.Model
   }
 
 
@@ -25,43 +25,40 @@ type Msg
   | Items BudgetList.Msg
 
 
-init : (Date.Month, Int) -> Float -> (Model a, Cmd msg, Cmd Msg)
+init : (Date.Month, Int) -> Float -> (Model, Cmd Msg)
 init (month, year) budget =
-  let (list, cmd, msg) = BudgetList.init
+  let (list, cmd) = BudgetList.init
   in  ( Model
         (toString month ++ " " ++ toString year)
         budget
         budget
         list
-      , cmd
-      , Cmd.map Items msg
+      , Cmd.map Items cmd
       )
 
 
 
 -- UPDATE
 
-update : Msg -> Model a -> ( Model a, Cmd msg, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     Add ->
       ( { model | items = BudgetList.add model.items }
       , Cmd.none
-      , Cmd.none
       )
     Items msg ->
-      let (items', cmd, blCmd) = BudgetList.update msg model.items
+      let (items', cmd) = BudgetList.update msg model.items
           balance' = model.start - BudgetList.sum items'
       in  ( { model | items = items', balance = balance' }
-          , cmd
-          , Cmd.map Items blCmd
+          , Cmd.map Items cmd
           )
 
 
 
 -- SUBSCRIPTIONS
 
-subscriptions : Model a -> Sub Msg
+subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.none
 
@@ -72,7 +69,7 @@ subscriptions model =
 (=>) = (,)
 
 
-view : Model a -> Html Msg
+view : Model -> Html Msg
 view {title, start, balance, items} =
   let
     headers =

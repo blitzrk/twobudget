@@ -46,7 +46,7 @@ setSpent num model =
 -- UPDATE
 
 
-update : Msg -> Model -> ( Model, Cmd msg, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   let send msg val =
         Task.perform Debug.crash msg (Task.succeed val)
@@ -61,15 +61,15 @@ update msg model =
   
   in case msg of
     InputName name ->
-      ( { model | name = String.trim name }, Cmd.none, Cmd.none )
+      ( { model | name = String.trim name }, Cmd.none )
     InputAmnt amnt ->
-      ( { model | amnt = String.trim amnt }, Cmd.none, send Update () )
+      ( { model | amnt = String.trim amnt }, send Update () )
     InputSpnt spnt ->
-      ( { model | spnt = String.trim spnt}, Cmd.none, send Update () )
+      ( { model | spnt = String.trim spnt}, send Update () )
     Update () ->
-      ( { model | left = updateRemain model }, Cmd.none, Cmd.none )
+      ( { model | left = updateRemain model }, Cmd.none )
     Normalize ->
-      ( { model | amnt = norm model.amnt, spnt = norm model.spnt }, Cmd.none, Cmd.none )
+      ( { model | amnt = norm model.amnt, spnt = norm model.spnt }, Cmd.none )
 
 
 norm : String -> String
@@ -77,6 +77,8 @@ norm s =
   case String.toFloat s of
     Err _ -> s
     Ok num -> num |> Float.toFixed 2
+
+
 
 -- VIEW
 

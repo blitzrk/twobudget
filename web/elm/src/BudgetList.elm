@@ -11,31 +11,31 @@ import Html.Attributes exposing (..)
 -- INIT
 
 
-type alias Model a =
-  DragList.Model BudgetRow.Model BudgetRow.Msg a
+type alias Model =
+  DragList.Model BudgetRow.Model BudgetRow.Msg
 
 
 type alias ListMsg =
   DragList.Msg BudgetRow.Model BudgetRow.Msg
 
 
-init : (Model a, Cmd msg, Cmd Msg)
+init : (Model, Cmd Msg)
 init =
-  let (val, cmd, msg) = DragList.init <|
+  let (val, cmd) = DragList.init <|
     DragList.Sig BudgetRow.init BudgetRow.update BudgetRow.view
-  in (val, cmd, Cmd.map Subupdate msg)
+  in (val, Cmd.map Subupdate cmd)
 
 
 
 -- API
 
 
-add : Model a -> Model a
+add : Model -> Model
 add model =
   model
 
 
-sum : Model a -> Float
+sum : Model -> Float
 sum model =
   1.0
 
@@ -48,15 +48,15 @@ type Msg
   = Subupdate ListMsg
 
 
-update : Msg -> Model a -> (Model a, Cmd msg, Cmd Msg)
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  (model, Cmd.none, Cmd.none)
+  (model, Cmd.none)
 
 
 
 -- VIEW
 
 
-view : Model a -> Html Msg
+view : Model -> Html Msg
 view model =
   div [] [ text "Hello world!" ]
