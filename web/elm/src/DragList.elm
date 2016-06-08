@@ -1,4 +1,4 @@
-module DragList exposing (Model, Msg, Sig, init, update, subscriptions, view, toList)
+module DragList exposing (Model, Msg, Sig, init, update, subscriptions, view, toList, append)
 
 import Debug
 import Html exposing (..)
@@ -61,6 +61,13 @@ toList {drag, items} =
     Nothing -> left ++ right
     Just {item} -> left ++ (item :: right))
   |> List.map (\{value} -> value)
+
+
+append : a -> Model a b -> Model a b
+append item ({items} as model) =
+  case items of
+    (left,[]) -> { model | items = (left ++ [Item (List.length left) item], []) }
+    (_,_) -> model
 
 
 

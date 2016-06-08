@@ -6,6 +6,7 @@ import DragList
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
+import String
 
 
 -- INIT
@@ -32,12 +33,15 @@ init =
 
 add : Model -> Model
 add model =
-  model
+  model |> DragList.append model.struct.init
 
 
 sum : Model -> Float
 sum model =
-  1.0
+  model |> DragList.toList |> List.foldl (\row acc ->
+    case String.toFloat row.amnt of
+      Err _ -> acc
+      Ok v -> acc + v) 0
 
 
 
