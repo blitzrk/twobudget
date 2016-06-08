@@ -60,29 +60,29 @@ validate transaction =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg transaction =
-  let only = \model -> ( model, Cmd.none )
-      chain msg str =
-        ( transaction
-        , Task.perform Debug.crash msg (Task.succeed str)
-        )
-  in case msg of
-    Reset () -> let (model, cmd) = init transaction.href in (model, cmd)
-    Set k v  -> only { transaction | form = transaction.form |> Dict.insert k v }
-    Today d  -> chain (Set "date") (DateString.fromDate d)
-    Show     -> only { transaction | open = True }
-    Submit ->
-      case validate transaction of
-        ( False, err ) -> only {transaction | error = Just err}
-        ( True, json ) ->
-          ( fst << init <| transaction.href
-          --, WebSocket.send transaction.href json
-          , Task.perform Debug.crash Reset (Task.succeed ())
-          )
-    Calendar msg ->
-      let (calendar', cmd) = Calendar.update msg transaction.calendar
-      in  ( { transaction | calendar = calendar' }
-          , Cmd.map Calendar cmd
-        )
+  let
+    chain msg str =
+      ( transaction
+      , Task.perform Debug.crash msg (Task.succeed str)
+      )
+  in 
+    case msg of
+      Reset () -> let (model, cmd) = init transaction.href in (model, cmd)
+      Set k v  -> { transaction | form = transaction.form |> Dict.insert k v } ! []
+      Today d  -> chain (Set "date") (DateString.fromDate d)
+      Show     -> { transaction | open = True } ! []
+      Submit ->
+        case validate transaction of
+          ( False, err ) -> {transaction | error = Just err} ! []
+          ( True, json ) ->
+            (init transaction.href |> fst) ! [ WebSocket.send transaction.href json
+                                             , Task.perform Debug.crash Reset (Task.succeed ())
+                                             ]
+      Calendar msg ->
+        let (calendar', cmd) = Calendar.update msg transaction.calendar
+        in  ( { transaction | calendar = calendar' }
+            , Cmd.map Calendar cmd
+            )
 
 
 setHref : String -> Model -> Model
