@@ -246,6 +246,7 @@ view {drag, items, struct} =
             , "display" => "flex"
             , "justify-content" => "center"
             , "align-items" => "center"
+            , "width" => "calc(100% - 30px)"
             ]
           ]
           [ App.map (Value item.index) (struct.view item.value) ]
