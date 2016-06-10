@@ -54,7 +54,10 @@ type Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  (model, Cmd.none)
+  case msg of
+    Subupdate message ->
+      let (model', cmd) = DragList.update message model
+      in  model' ! [ Cmd.map Subupdate cmd ]
 
 
 
@@ -63,4 +66,4 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  div [] [ text "Hello world!" ]
+  App.map Subupdate (DragList.view model)
