@@ -61,15 +61,15 @@ update msg model =
   
   in case msg of
     InputName name ->
-      ( { model | name = String.trim name }, Cmd.none )
+      { model | name = String.trim name } ! []
     InputAmnt amnt ->
       ( { model | amnt = String.trim amnt }, send Update () )
     InputSpnt spnt ->
       ( { model | spnt = String.trim spnt}, send Update () )
     Update () ->
-      ( { model | left = updateRemain model }, Cmd.none )
+      { model | left = updateRemain model } ! []
     Normalize ->
-      ( { model | amnt = norm model.amnt, spnt = norm model.spnt }, Cmd.none )
+      { model | amnt = norm model.amnt, spnt = norm model.spnt } ! []
 
 
 norm : String -> String
@@ -91,7 +91,7 @@ view {name, amnt, spnt, left} =
     default = ["flex" => "1", "min-width" => "75px"]
   in
     div [style ["display" => "flex", "width" => "calc(100% - 10px)"]]
-      [ input [style default, onInput InputName, value name] []
+      [ input [style default, onInput InputName, Html.Attributes.value name] []
       , input [type' "number", style default, onInput InputAmnt, onBlur Normalize, value amnt] []
       , input [type' "number", style default, onInput InputSpnt, onBlur Normalize, value spnt] []
       , input [style default, disabled True, value left] []

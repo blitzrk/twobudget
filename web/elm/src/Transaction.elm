@@ -1,4 +1,4 @@
-module Transaction exposing (Model, Msg, init, update, view, setHref)
+module Transaction exposing (Model, Msg, init, update, view)
 
 import Calendar
 import Date exposing (Date)
@@ -20,7 +20,6 @@ type alias Model =
   { form  : Dict String String
   , open  : Bool
   , error : Maybe String
-  , href  : String
   , calendar : Calendar.Model
   }
 
@@ -34,18 +33,17 @@ type Msg
   | Calendar Calendar.Msg
 
 
-init : String -> ( Model, Cmd Msg )
-init addr =
-  let (cal, calCmd) = Calendar.init
+init : ( Model, Cmd Msg )
+init =
+  let (cal, cmd) = Calendar.init
   in  ( { form  = Dict.empty
         , open  = False
         , error = Nothing
-        , href  = addr
         , calendar = cal
         }
       , Cmd.batch
         [ Task.perform Debug.crash Today Date.now
-        , Cmd.map Calendar calCmd
+        , Cmd.map Calendar cmd
         ]
       )
 
@@ -59,36 +57,28 @@ validate transaction =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg transaction =
+update msg ({calendar, form} as model) =
   let
-    chain msg str =
-      ( transaction
-      , Task.perform Debug.crash msg (Task.succeed str)
+    chain next val =
+      ( model
+      , Task.perform Debug.crash next (Task.succeed val)
       )
   in 
     case msg of
-      Reset () -> let (model, cmd) = init transaction.href in (model, cmd)
-      Set k v  -> { transaction | form = transaction.form |> Dict.insert k v } ! []
+      Reset () -> let (model, cmd) = init in (model, cmd)
+      Set k v  -> { model | form = form |> Dict.insert k v } ! []
       Today d  -> chain (Set "date") (DateString.fromDate d)
-      Show     -> { transaction | open = True } ! []
+      Show     -> { model | open = True } ! []
       Submit ->
-        case validate transaction of
-          ( False, err ) -> {transaction | error = Just err} ! []
+        case validate model of
+          ( False, err ) -> {model | error = Just err} ! []
           ( True, json ) ->
-            (init transaction.href |> fst) ! [ WebSocket.send transaction.href json
-                                             , Task.perform Debug.crash Reset (Task.succeed ())
-                                             ]
+            let (model', cmd) = init
+            in  model ! [ cmd, Task.perform Debug.crash Reset (Task.succeed ()) ]
+
       Calendar msg ->
-        let (calendar', cmd) = Calendar.update msg transaction.calendar
-        in  ( { transaction | calendar = calendar' }
-            , Cmd.map Calendar cmd
-            )
-
-
-setHref : String -> Model -> Model
-setHref href transaction =
-  { transaction |
-    href = href }
+        let (calendar', cmd) = Calendar.update msg calendar
+        in  { model | calendar = calendar' } ! [Cmd.map Calendar cmd]
 
 
 
@@ -145,6 +135,6 @@ view {form, open, calendar} =
           [ style ["margin-top" => "20px"], onClick Submit ]
           [ text "Submit" ]
         ]
-      , App.map Calendar (Calendar.view calendar)
+      --, App.map Calendar (Calendar.view calendar)
       ]
 

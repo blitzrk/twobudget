@@ -83,11 +83,12 @@ type Msg model msg
 
 
 update : Msg a b -> Model a b -> ( Model a b, Cmd (Msg a b) )
-update msg ({struct} as model) =
+update msg ({drag, items, struct} as model) =
+  let x = Debug.log "msg" msg in
   case msg of
     Value i vMsg ->
-      let applyMsg i m ({index, value} as item) =
-            if index /= i then (item, Cmd.none)
+      let applyMsg j m ({index, value} as item) =
+            if index /= j then (item, Cmd.none)
             else
               let (v, cmd) = struct.update m value
               in  (Item i v, Cmd.map (Value i) cmd)
@@ -99,40 +100,26 @@ update msg ({struct} as model) =
           cmd = List.foldl (\(_,c) cs -> Cmd.batch [c, cs]) Cmd.none (lefts ++ rights)
       in  ( { model | items = (left', right') }, cmd )
 
-    _ ->
-      ( updateHelp msg model, Cmd.none )
-
-
-updateHelp : Msg a b -> Model a b -> Model a b
-updateHelp msg ({drag, items} as model) =
-  case msg of
     DragStart ({index} as item) xy ->
       { model |
         drag = Just (Drag item xy),
         items = items |> split index
-      }
+      } ! []
 
     DragAt xy ->
-      { model |
-        drag = Maybe.map (\{item} -> Drag item xy) drag
-      }
+      { model | drag = Maybe.map (\{item} -> Drag item xy) drag } ! []
 
     DragEnd _ ->
       case drag of
-        Nothing -> model
+        Nothing -> model ! []
         Just {item} ->
           { model |
             drag = Nothing,
             items = items |> join item |> order
-          }
+          } ! []
 
     Over i ->
-      { model |
-        items = items |> partition i
-      }
-
-    _ ->
-      Debug.crash <| "Error: cannot handle message: " ++ toString msg
+      { model | items = items |> partition i } ! []
 
 
 split : Int -> (List (Item a), List (Item a)) -> (List (Item a), List (Item a))

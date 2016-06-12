@@ -44,7 +44,7 @@ init : {name : String, jwt : String} -> ( Model, Cmd Msg )
 init user =
   let
     ws = wsAddr user.name user.jwt
-    (transaction, tcmd) = Transaction.init ws
+    (transaction, tcmd) = Transaction.init
     (budgetView, bvcmd) = BudgetView.init ws
     default =
       { user = user

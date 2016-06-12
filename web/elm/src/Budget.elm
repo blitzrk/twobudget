@@ -41,14 +41,13 @@ init (month, year) budget =
 -- UPDATE
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update msg ({items} as model) =
   case msg of
     Add ->
-      ( { model | items = BudgetList.add model.items }
-      , Cmd.none
-      )
+      { model | items = BudgetList.add items } ! []
+
     Items msg ->
-      let (items', cmd) = BudgetList.update msg model.items
+      let (items', cmd) = BudgetList.update msg items
           balance' = model.start - BudgetList.sum items'
       in  ( { model | items = items', balance = balance' }
           , Cmd.map Items cmd
