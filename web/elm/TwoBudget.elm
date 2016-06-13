@@ -10,7 +10,6 @@ import Html.App as App
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Task
-import WebSocket
 
 
 
@@ -43,20 +42,17 @@ type alias Model =
 init : {name : String, jwt : String} -> ( Model, Cmd Msg )
 init user =
   let
-    ws = wsAddr user.name user.jwt
-    (transaction, tcmd) = Transaction.init
-    (budgetView, bvcmd) = BudgetView.init ws
-    default =
-      { user = user
-      , state = Budget
-      , budgetView = budgetView
-      , transaction = transaction
-      }
+    (transaction, tcmd) = Transaction.init user.name
+    (budgetView, bvcmd) = BudgetView.init user.name
   in
-    (default, Cmd.batch
-                [ Cmd.map Transact tcmd
-                , Cmd.map BudgetView bvcmd
-                ])
+    { user = user
+    , state = Budget
+    , budgetView = budgetView
+    , transaction = transaction
+    } !
+    [ Cmd.map Transact tcmd
+    , Cmd.map BudgetView bvcmd
+    ]
 
 
 
@@ -87,10 +83,6 @@ update msg model =
 
 
 -- SUBSCRIPTIONS
-
-wsAddr : String -> String -> String
-wsAddr username jwt =
-  "ws://home.krieg.io/" ++ username ++ "?token=" ++ jwt
 
 
 subscriptions : Model -> Sub Msg

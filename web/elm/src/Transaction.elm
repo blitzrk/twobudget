@@ -10,15 +10,16 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (on, onInput, onClick)
 import String
 import Task
-import WebSocket
 
 
 
 -- MODEL
 
+
 type alias Model =
   { form  : Dict String String
   , open  : Bool
+  , user  : String
   , error : Maybe String
   , calendar : Calendar.Model
   }
@@ -33,19 +34,18 @@ type Msg
   | Calendar Calendar.Msg
 
 
-init : ( Model, Cmd Msg )
-init =
+init : String -> ( Model, Cmd Msg )
+init user =
   let (cal, cmd) = Calendar.init
-  in  ( { form  = Dict.empty
-        , open  = False
-        , error = Nothing
-        , calendar = cal
-        }
-      , Cmd.batch
-        [ Task.perform Debug.crash Today Date.now
-        , Cmd.map Calendar cmd
-        ]
-      )
+  in  { form  = Dict.empty
+      , open  = False
+      , user = user
+      , error = Nothing
+      , calendar = cal
+      } !
+      [ Task.perform Debug.crash Today Date.now
+      , Cmd.map Calendar cmd
+      ]
 
 
 
@@ -57,25 +57,21 @@ validate transaction =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg ({calendar, form} as model) =
+update msg ({calendar, form, user} as model) =
   let
-    chain next val =
-      ( model
-      , Task.perform Debug.crash next (Task.succeed val)
-      )
+    chain next val = model ! [ Task.perform Debug.crash next (Task.succeed val) ]
   in 
     case msg of
-      Reset () -> let (model, cmd) = init in (model, cmd)
+      Reset () -> let (model, cmd) = init user in (model, cmd)
       Set k v  -> { model | form = form |> Dict.insert k v } ! []
       Today d  -> chain (Set "date") (DateString.fromDate d)
       Show     -> { model | open = True } ! []
       Submit ->
         case validate model of
-          ( False, err ) -> {model | error = Just err} ! []
-          ( True, json ) ->
-            let (model', cmd) = init
-            in  model ! [ cmd, Task.perform Debug.crash Reset (Task.succeed ()) ]
-
+          ( False, err ) -> { model | error = Just err } ! []
+          ( True, json ) -> model !
+            [ Task.perform Debug.crash Reset (Task.succeed ())
+            ]
       Calendar msg ->
         let (calendar', cmd) = Calendar.update msg calendar
         in  { model | calendar = calendar' } ! [Cmd.map Calendar cmd]

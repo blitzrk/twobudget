@@ -8,7 +8,6 @@ import Html.App as App
 import Html.Attributes exposing (style)
 import Html.Events exposing (onBlur)
 import Task
-import WebSocket
 import Window
 
 
@@ -23,7 +22,7 @@ type alias Model =
   { focus : Int
   , cache : List (Month, Budget.Model)
   , width : Int
-  , addr  : String
+  , user  : String
   }
 
 
@@ -38,8 +37,8 @@ type Msg
 -- INIT
 
 init : String -> ( Model, Cmd Msg )
-init addr =
-  ( Model 0 [] 0 addr
+init user =
+  ( Model 0 [] 0 user
   , Cmd.batch
     [ Task.perform Debug.crash Resize Window.size
     , Task.perform Debug.crash Init Date.now
