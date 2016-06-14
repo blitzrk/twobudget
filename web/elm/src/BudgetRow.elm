@@ -61,7 +61,7 @@ update msg model =
   
   in case msg of
     InputName name ->
-      { model | name = String.trim name } ! []
+      { model | name = name } ! []
     InputAmnt amnt ->
       ( { model | amnt = String.trim amnt }, send Update () )
     InputSpnt spnt ->
@@ -88,10 +88,10 @@ norm s =
 view : Model -> Html Msg
 view {name, amnt, spnt, left} =
   let
-    default = ["flex" => "1", "min-width" => "75px"]
+    default = ["flex" => "1", "min-width" => "75px", "color" => "black"]
   in
     div [style ["display" => "flex", "width" => "calc(100% - 10px)"]]
-      [ input [style default, onInput InputName, Html.Attributes.value name] []
+      [ input [style default, onInput InputName, value name] []
       , input [type' "number", style default, onInput InputAmnt, onBlur Normalize, value amnt] []
       , input [type' "number", style default, onInput InputSpnt, onBlur Normalize, value spnt] []
       , input [style default, disabled True, value left] []

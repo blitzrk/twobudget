@@ -4,7 +4,7 @@ import Debug
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html.Events exposing (onMouseOver, onWithOptions)
 import Json.Decode as Json
 import Mouse exposing (Position)
 
@@ -67,7 +67,7 @@ append : a -> Model a b -> Model a b
 append item ({items} as model) =
   case items of
     (left,[]) -> { model | items = (left ++ [Item (List.length left) item], []) }
-    (_,_) -> model
+    (_,_) -> Debug.log "bad append" model
 
 
 
