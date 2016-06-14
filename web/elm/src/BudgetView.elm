@@ -3,6 +3,7 @@ module BudgetView exposing (Model, Msg, init, update, subscriptions, view)
 import Budget
 
 import Date exposing (Date)
+import Debug
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (style)
@@ -62,6 +63,7 @@ update msg model =
     Focus focus    -> only { model | focus = focus }
     Resize {width} -> only { model | width = width }
     Budget m msg ->
+      let x = Debug.log "msg" msg in
       case List.filter ((==) m << fst) model.cache of
         (_, b) :: [] ->
           let ( b', cmd ) = Budget.update msg b
@@ -80,9 +82,9 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.batch
+  Sub.batch <|
     [ Window.resizes Resize
-    ]
+    ] ++ (List.map (\(m,b) -> Sub.map (Budget m) (Budget.subscriptions b)) model.cache)
 
 
 

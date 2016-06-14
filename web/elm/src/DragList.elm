@@ -84,21 +84,18 @@ type Msg model msg
 
 update : Msg a b -> Model a b -> ( Model a b, Cmd (Msg a b) )
 update msg ({drag, items, struct} as model) =
-  let x = Debug.log "msg" msg in
   case msg of
-    Value i vMsg ->
-      let applyMsg j m ({index, value} as item) =
-            if index /= j then (item, Cmd.none)
+    Value i message ->
+      let applyMsg ({index, value} as item) =
+            if index /= i then item ! []
             else
-              let (v, cmd) = struct.update m value
+              let (v, cmd) = struct.update message value
               in  (Item i v, Cmd.map (Value i) cmd)
-          (left, right) = model.items
-          lefts = List.map (applyMsg i vMsg) left
-          left' = List.map (\(a,_) -> a) lefts
-          rights = List.map (applyMsg i vMsg) right
-          right' = List.map (\(a,_) -> a) rights
-          cmd = List.foldl (\(_,c) cs -> Cmd.batch [c, cs]) Cmd.none (lefts ++ rights)
-      in  ( { model | items = (left', right') }, cmd )
+          lefts = List.map applyMsg (fst items)
+          rights = List.map applyMsg (snd items)
+          items' = (List.map fst lefts, List.map fst rights)
+          cmds = List.foldl (::) [] (lefts ++ rights |> List.map snd)
+      in  { model | items = items' } ! cmds
 
     DragStart ({index} as item) xy ->
       { model |

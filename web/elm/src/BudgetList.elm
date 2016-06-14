@@ -1,4 +1,4 @@
-module BudgetList exposing (Model, Msg, init, update, view, add, sum)
+module BudgetList exposing (Model, Msg, init, update, subscriptions, view, add, sum)
 
 import BudgetRow
 import DragList
@@ -59,6 +59,15 @@ update msg model =
     Subupdate message ->
       let (model', cmd) = DragList.update message model
       in  model' ! [ Cmd.map Subupdate cmd ]
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.map Subupdate (DragList.subscriptions model)
 
 
 

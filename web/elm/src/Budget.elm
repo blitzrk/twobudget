@@ -59,7 +59,7 @@ update msg ({items} as model) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+  Sub.map Items (BudgetList.subscriptions model.items)
 
 
 
