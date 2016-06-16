@@ -4,7 +4,7 @@ import Debug
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
-import Html.Events exposing (onMouseOver, onWithOptions)
+import Html.Events exposing (onClick, onMouseOver, onWithOptions)
 import Json.Decode as Json
 import Mouse exposing (Position)
 
@@ -45,7 +45,6 @@ init struct =
       Nothing
       ([Item 0 struct.init], [])
       struct
-      --(\{index,value} -> App.map (Value index) (viewItem value))
   , Cmd.none
   )
 
@@ -79,24 +78,13 @@ type Msg model msg
     | DragAt Position
     | DragEnd Position
     | Over Int
+    | Remove Int
     | Value Int msg
 
 
 update : Msg a b -> Model a b -> ( Model a b, Cmd (Msg a b) )
 update msg ({drag, items, struct} as model) =
   case msg of
-    Value i message ->
-      let applyMsg ({index, value} as item) =
-            if index /= i then item ! []
-            else
-              let (v, cmd) = struct.update message value
-              in  (Item i v, Cmd.map (Value i) cmd)
-          lefts = List.map applyMsg (fst items)
-          rights = List.map applyMsg (snd items)
-          items' = (List.map fst lefts, List.map fst rights)
-          cmds = List.foldl (::) [] (lefts ++ rights |> List.map snd)
-      in  { model | items = items' } ! cmds
-
     DragStart ({index} as item) xy ->
       { model |
         drag = Just (Drag item xy),
@@ -117,6 +105,26 @@ update msg ({drag, items, struct} as model) =
 
     Over i ->
       { model | items = items |> partition i } ! []
+
+    Remove i ->
+      let
+        (left, right) = items
+        left' = left |> List.filter (\{index} -> index /= i)
+        right' = right |> List.filter (\{index} -> index /= i)
+      in
+        { model | items = (left', right') } ! []
+
+    Value i message ->
+      let applyMsg ({index, value} as item) =
+            if index /= i then item ! []
+            else
+              let (v, cmd) = struct.update message value
+              in  (Item i v, Cmd.map (Value i) cmd)
+          lefts = List.map applyMsg (fst items)
+          rights = List.map applyMsg (snd items)
+          items' = (List.map fst lefts, List.map fst rights)
+          cmds = List.foldl (::) [] (lefts ++ rights |> List.map snd)
+      in  { model | items = items' } ! cmds
 
 
 split : Int -> (List (Item a), List (Item a)) -> (List (Item a), List (Item a))
@@ -195,7 +203,7 @@ view {drag, items, struct} =
 
     defaultStyle =
       [ "width" => "650px"
-      , "height" => "50px"
+      , "height" => "40px"
       , "display" => "flex"
       ]
 
@@ -217,14 +225,16 @@ view {drag, items, struct} =
           [ onMouseDown item
           , style
             [ "height" => "100%"
-            , "width" => "30px"
+            , "width" => "25px"
             , "display" => "flex"
             , "justify-content" => "center"
             , "align-items" => "center"
             , "cursor" => "move"
+            , "font-weight" => "700"
             ]
           ]
-          [ span [ style ["color"=>"darkgray"] ] [text "☰"] ]
+          [ span [ style ["color"=>"darkgray"] ] [ text "☰" ]
+          ]
         , div
           [ style
             [ "text-align" => "center"
@@ -232,10 +242,24 @@ view {drag, items, struct} =
             , "display" => "flex"
             , "justify-content" => "center"
             , "align-items" => "center"
-            , "width" => "calc(100% - 30px)"
+            , "width" => "calc(100% - 50px)"
             ]
           ]
-          [ App.map (Value item.index) (struct.view item.value) ]
+          [ App.map (Value item.index) (struct.view item.value)
+          ]
+        , div
+          [ onClick (Remove item.index)
+          , style
+            [ "height" => "100%"
+            , "width" => "25px"
+            , "display" => "flex"
+            , "justify-content" => "center"
+            , "align-items" => "center"
+            , "cursor" => "default"
+            , "font-weight" => "700"
+            ]
+          ]
+          [ span [] [text "X"] ]
         ]
 
     toElement item =
@@ -273,7 +297,7 @@ view {drag, items, struct} =
         Just _ -> empty :: (List.map toElement right))
 
   in
-    div [ style [] ] (list ++ floater)
+    div [] (list ++ floater)
 
 
 px : Int -> String
