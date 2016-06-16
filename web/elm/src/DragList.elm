@@ -194,10 +194,8 @@ view {drag, items, struct} =
         Just {pos} -> Position (pos.x - 15) (pos.y - 15)
 
     defaultStyle =
-      [ "background-color" => "limegreen"
-      , "width" => "650px"
+      [ "width" => "650px"
       , "height" => "50px"
-      , "color" => "white"
       , "display" => "flex"
       ]
 
@@ -209,7 +207,11 @@ view {drag, items, struct} =
             , "position" => "absolute"
             , "left" => px realPosition.x
             , "top" => px realPosition.y
-            ] else [ "border-bottom" => "1px solid black" ]
+            , "background-color" => "white"
+            ] else
+            [ "border-bottom" => "1px solid lightgray"
+            , "background-color" => "none"
+            ]
         ] <|
         [ div
           [ onMouseDown item
@@ -222,7 +224,7 @@ view {drag, items, struct} =
             , "cursor" => "move"
             ]
           ]
-          [ span [] [text "☰"] ]
+          [ span [ style ["color"=>"darkgray"] ] [text "☰"] ]
         , div
           [ style
             [ "text-align" => "center"
@@ -262,7 +264,7 @@ view {drag, items, struct} =
 
     empty =
       div [ style <|
-            defaultStyle ++ [ "border-bottom" => "1px solid black" ]
+            defaultStyle ++ [ "border-bottom" => "1px solid lightgray" ]
           ] []
 
     list =
