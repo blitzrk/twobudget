@@ -51,9 +51,11 @@ init user =
 
 -- UPDATE
 
-validate : Model -> (Bool, String)
+
+-- Possibly change to (List String) for multiple errs
+validate : Model -> Result String ()
 validate transaction =
-  ( True, "" )
+  Ok ()
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -68,8 +70,8 @@ update msg ({calendar, form, user} as model) =
       Show     -> { model | open = True } ! []
       Submit ->
         case validate model of
-          ( False, err ) -> { model | error = Just err } ! []
-          ( True, json ) -> model !
+          Err err -> { model | error = Just err } ! []
+          Ok json -> model !
             [ Task.perform Debug.crash Reset (Task.succeed ())
             ]
       Calendar msg ->
@@ -125,12 +127,13 @@ view {form, open, calendar} =
         [ "amount"   |> row [ type' "number" ]
         , "payee"    |> row []
         , "category" |> row []
+        -- TODO: Show calendar on field click; disable browser default
+        --, App.map Calendar (Calendar.view calendar)
         , "date"     |> row [ type' "date" ]
         , "note"     |> row []
         , button
           [ style ["margin-top" => "20px"], onClick Submit ]
           [ text "Submit" ]
         ]
-      --, App.map Calendar (Calendar.view calendar)
       ]
 
