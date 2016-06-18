@@ -2,7 +2,6 @@ module BudgetList exposing (Model, Msg, init, update, subscriptions, view, add, 
 
 import BudgetRow
 import DragList
-
 import Debug
 import Html exposing (..)
 import Html.App as App
@@ -14,18 +13,21 @@ import String
 
 
 type alias Model =
-  DragList.Model BudgetRow.Model BudgetRow.Msg
+    DragList.Model BudgetRow.Model BudgetRow.Msg
 
 
 type alias ListMsg =
-  DragList.Msg BudgetRow.Model BudgetRow.Msg
+    DragList.Msg BudgetRow.Model BudgetRow.Msg
 
 
-init : (Model, Cmd Msg)
+init : ( Model, Cmd Msg )
 init =
-  let (model, cmd) = DragList.init <|
-    DragList.Sig BudgetRow.init BudgetRow.update BudgetRow.view
-  in model ! [Cmd.map Subupdate cmd]
+    let
+        ( model, cmd ) =
+            DragList.init
+                <| DragList.Sig BudgetRow.init BudgetRow.update BudgetRow.view
+    in
+        model ! [ Cmd.map Subupdate cmd ]
 
 
 
@@ -34,15 +36,23 @@ init =
 
 add : Model -> Model
 add model =
-  model |> DragList.append model.struct.init
+    model |> DragList.append model.struct.init
 
 
 sum : Model -> Float
 sum model =
-  model |> DragList.toList |> List.foldl (\row acc ->
-    case String.toFloat row.amnt of
-      Err _ -> acc
-      Ok v -> acc + v) 0
+    model
+        |> DragList.toList
+        |> List.foldl
+            (\row acc ->
+                case String.toFloat row.amnt of
+                    Err _ ->
+                        acc
+
+                    Ok v ->
+                        acc + v
+            )
+            0
 
 
 
@@ -50,15 +60,18 @@ sum model =
 
 
 type Msg
-  = Subupdate ListMsg
+    = Subupdate ListMsg
 
 
-update : Msg -> Model -> (Model, Cmd Msg)
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    Subupdate message ->
-      let (model', cmd) = DragList.update message model
-      in  model' ! [ Cmd.map Subupdate cmd ]
+    case msg of
+        Subupdate message ->
+            let
+                ( model', cmd ) =
+                    DragList.update message model
+            in
+                model' ! [ Cmd.map Subupdate cmd ]
 
 
 
@@ -67,7 +80,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.map Subupdate (DragList.subscriptions model)
+    Sub.map Subupdate (DragList.subscriptions model)
 
 
 
@@ -76,4 +89,4 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-  App.map Subupdate (DragList.view model)
+    App.map Subupdate (DragList.view model)
