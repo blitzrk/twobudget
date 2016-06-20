@@ -138,6 +138,7 @@ view { form, open, calendar } =
                 , "flex-direction" => "column"
                 , "margin-top" => "30px"
                 , "width" => "320px"
+                , "padding" => "0 15px"
                 ]
             ]
             [ tButton

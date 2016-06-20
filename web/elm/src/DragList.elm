@@ -251,7 +251,7 @@ view { drag, items, struct } =
                     Position (pos.x - 15) (pos.y - 15)
 
         defaultStyle =
-            [ "width" => "650px"
+            [ "width" => "100%"
             , "height" => "40px"
             , "display" => "flex"
             ]
@@ -361,7 +361,7 @@ view { drag, items, struct } =
                             empty :: (List.map toElement right)
                    )
     in
-        div [] (list ++ floater)
+        div [ style [ "width" => "100%" ] ] (list ++ floater)
 
 
 px : Int -> String

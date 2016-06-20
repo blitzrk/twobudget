@@ -99,7 +99,7 @@ view { title, start, balance, items } =
                 , "width" => "100%"
                 , "max-width" => "650px"
                 , "margin" => "auto"
-                , "padding" => "15px"
+                , "padding" => "15px 0"
                 , "border" => "1px solid black"
                 ]
             ]

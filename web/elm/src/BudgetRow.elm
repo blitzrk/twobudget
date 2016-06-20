@@ -110,7 +110,7 @@ view : Model -> Html Msg
 view { name, amnt, spnt, left } =
     let
         default =
-            [ "flex" => "1", "min-width" => "60px" ]
+            [ "flex" => "1", "max-width" => "25%" ]
     in
         div [ style [ "display" => "flex", "width" => "calc(100% - 10px)" ] ]
             [ input [ style default, onInput InputName, value name ] []
