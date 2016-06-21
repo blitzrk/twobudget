@@ -7,7 +7,7 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
-import Html.Events exposing (on, onInput, onClick, onFocus, onBlur)
+import Html.Events exposing (on, onInput, onClick, onFocus)
 import String
 import Task
 
@@ -172,20 +172,19 @@ view { form, open, showCal, calendar } =
                     , "width" => "100%"
                     ]
                 ]
-                [ "amount" |> row [ type' "number" ]
-                , "payee" |> row []
-                , "category" |> row []
+                [ "amount" |> row [ type' "number", onFocus (ShowCalendar False) ]
+                , "payee" |> row [ onFocus (ShowCalendar False) ]
+                , "category" |> row [ onFocus (ShowCalendar False) ]
                 , "date"
                     |> row
                         [ type' "date"
                         , onFocus (ShowCalendar True)
-                        , onBlur (ShowCalendar False)
                         ]
                 , if showCal then
                     App.map Calendar (Calendar.view calendar)
                   else
                     div [] []
-                , "note" |> row []
+                , "note" |> row [ onFocus (ShowCalendar False) ]
                 , button [ style [ "margin-top" => "20px" ], onClick Submit ]
                     [ text "Submit" ]
                 ]
