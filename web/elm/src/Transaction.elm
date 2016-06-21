@@ -7,7 +7,7 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
-import Html.Events exposing (on, onInput, onClick)
+import Html.Events exposing (on, onInput, onClick, onFocus, onBlur)
 import String
 import Task
 
@@ -20,6 +20,7 @@ type alias Model =
     , open : Bool
     , user : String
     , error : Maybe String
+    , showCal : Bool
     , calendar : Calendar.Model
     }
 
@@ -27,8 +28,8 @@ type alias Model =
 type Msg
     = Reset ()
     | Set String String
-    | Today Date
     | Show
+    | ShowCalendar Bool
     | Submit
     | Calendar Calendar.Msg
 
@@ -43,10 +44,10 @@ init user =
         , open = False
         , user = user
         , error = Nothing
+        , showCal = False
         , calendar = cal
         }
-            ! [ Task.perform Debug.crash Today Date.now
-              , Cmd.map Calendar cmd
+            ! [ Cmd.map Calendar cmd
               ]
 
 
@@ -77,11 +78,21 @@ update msg ({ calendar, form, user } as model) =
             Set k v ->
                 { model | form = form |> Dict.insert k v } ! []
 
-            Today d ->
-                chain (Set "date") (DateString.fromDate d)
-
             Show ->
-                { model | open = True } ! []
+                { model
+                    | open = True
+                    , form =
+                        form
+                            |> Dict.insert "date"
+                                (Calendar.string calendar)
+                }
+                    ! []
+
+            ShowCalendar bool ->
+                { model
+                    | showCal = bool
+                }
+                    ! []
 
             Submit ->
                 case validate model of
@@ -93,10 +104,17 @@ update msg ({ calendar, form, user } as model) =
 
             Calendar msg ->
                 let
-                    ( calendar', cmd ) =
+                    ( calendar', cmd, datestring ) =
                         Calendar.update msg calendar
                 in
-                    { model | calendar = calendar' } ! [ Cmd.map Calendar cmd ]
+                    { model
+                        | calendar = calendar'
+                        , form =
+                            form
+                                |> Dict.insert "date"
+                                    datestring
+                    }
+                        ! [ Cmd.map Calendar cmd ]
 
 
 
@@ -108,7 +126,7 @@ update msg ({ calendar, form, user } as model) =
 
 
 view : Model -> Html Msg
-view { form, open, calendar } =
+view { form, open, showCal, calendar } =
     let
         value' field =
             value <| Maybe.withDefault "" (form |> Dict.get field)
@@ -157,9 +175,16 @@ view { form, open, calendar } =
                 [ "amount" |> row [ type' "number" ]
                 , "payee" |> row []
                 , "category" |> row []
-                  -- TODO: Show calendar on field click; disable browser default
-                  --, App.map Calendar (Calendar.view calendar)
-                , "date" |> row [ type' "date" ]
+                , "date"
+                    |> row
+                        [ type' "date"
+                        , onFocus (ShowCalendar True)
+                        , onBlur (ShowCalendar False)
+                        ]
+                , if showCal then
+                    App.map Calendar (Calendar.view calendar)
+                  else
+                    div [] []
                 , "note" |> row []
                 , button [ style [ "margin-top" => "20px" ], onClick Submit ]
                     [ text "Submit" ]

@@ -1,4 +1,4 @@
-module Calendar exposing (Model, Msg, init, update, view)
+module Calendar exposing (Model, Msg, init, update, view, string)
 
 import Date exposing (Date)
 import Date.Extra
@@ -28,6 +28,15 @@ init =
 
 
 
+-- API
+
+
+string : Model -> String
+string model =
+    DateString.fromDate model
+
+
+
 -- UPDATE
 
 
@@ -38,7 +47,7 @@ type Msg
     | Prev
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, String )
 update msg model =
     let
         incDate delta date =
@@ -56,20 +65,31 @@ update msg model =
     in
         case msg of
             Set date ->
-                ( date, Cmd.none )
+                ( date, Cmd.none, DateString.fromDate model )
 
             Select i ->
                 let
                     d =
                         Date.day model
+
+                    model' =
+                        model |> incDate ( 0, 0, i - d )
                 in
-                    ( model |> incDate ( 0, 0, i - d ), Cmd.none )
+                    ( model', Cmd.none, DateString.fromDate model' )
 
             Next ->
-                ( model |> incDate ( 0, 1, 0 ), Cmd.none )
+                let
+                    model' =
+                        model |> incDate ( 0, 1, 0 )
+                in
+                    ( model', Cmd.none, DateString.fromDate model' )
 
             Prev ->
-                ( model |> incDate ( 0, -1, 0 ), Cmd.none )
+                let
+                    model' =
+                        model |> incDate ( 0, -1, 0 )
+                in
+                    ( model', Cmd.none, DateString.fromDate model' )
 
 
 
