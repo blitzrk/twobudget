@@ -30,8 +30,10 @@ type Msg
     | Set String String
     | Show
     | ShowCalendar Bool
+    | SetCalendar String
     | Submit
     | Calendar Calendar.Msg
+    | Batch (List Msg)
 
 
 init : String -> ( Model, Cmd Msg )
@@ -68,12 +70,20 @@ update msg ({ calendar, form, user } as model) =
             model ! [ Task.perform Debug.crash next (Task.succeed val) ]
     in
         case msg of
+            Batch list ->
+                case list of
+                    [] ->
+                        model ! []
+
+                    x :: xs ->
+                        let
+                            ( model', cmd ) =
+                                update x model
+                        in
+                            model ! (cmd :: [ Task.perform Debug.crash Batch (Task.succeed xs) ])
+
             Reset () ->
-                let
-                    ( model, cmd ) =
-                        init user
-                in
-                    ( model, cmd )
+                init user
 
             Set k v ->
                 { model | form = form |> Dict.insert k v } ! []
@@ -93,6 +103,9 @@ update msg ({ calendar, form, user } as model) =
                     | showCal = bool
                 }
                     ! []
+
+            SetCalendar dstr ->
+                { model | calendar = calendar |> Calendar.set dstr } ! []
 
             Submit ->
                 case validate model of
@@ -134,12 +147,15 @@ view { form, open, showCal, calendar } =
         toLabel field =
             (String.toUpper <| String.left 1 field) ++ (String.dropLeft 1 field) ++ ":"
 
-        row attrs field =
+        row attrs inputCmds field =
             label [ style [ "width" => "100%" ] ]
                 [ span [ style [ "display" => "block" ] ] [ text <| toLabel field ]
                 , input
                     (attrs
-                        ++ [ style [ "width" => "100%" ], onInput (Set field), value' field ]
+                        ++ [ style [ "width" => "100%" ]
+                           , onInput (\text -> Batch <| (Set field text) :: inputCmds)
+                           , value' field
+                           ]
                     )
                     []
                 ]
@@ -172,19 +188,28 @@ view { form, open, showCal, calendar } =
                     , "width" => "100%"
                     ]
                 ]
-                [ "amount" |> row [ type' "number", onFocus (ShowCalendar False) ]
-                , "payee" |> row [ onFocus (ShowCalendar False) ]
-                , "category" |> row [ onFocus (ShowCalendar False) ]
+                [ "amount"
+                    |> row
+                        [ type' "number"
+                        , onFocus (ShowCalendar False)
+                        ]
+                        []
+                , "payee" |> row [ onFocus (ShowCalendar False) ] []
+                , "category" |> row [ onFocus (ShowCalendar False) ] []
                 , "date"
                     |> row
                         [ type' "date"
                         , onFocus (ShowCalendar True)
                         ]
+                        [ SetCalendar
+                            <| Maybe.withDefault ""
+                            <| Dict.get "date" form
+                        ]
                 , if showCal then
                     App.map Calendar (Calendar.view calendar)
                   else
                     div [] []
-                , "note" |> row [ onFocus (ShowCalendar False) ]
+                , "note" |> row [ onFocus (ShowCalendar False) ] []
                 , button [ style [ "margin-top" => "20px" ], onClick Submit ]
                     [ text "Submit" ]
                 ]

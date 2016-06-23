@@ -1,4 +1,4 @@
-module Calendar exposing (Model, Msg, init, update, view, string)
+module Calendar exposing (Model, Msg, init, update, view, string, set)
 
 import Date exposing (Date)
 import Date.Extra
@@ -34,6 +34,16 @@ init =
 string : Model -> String
 string model =
     DateString.fromDate model
+
+
+set : String -> Model -> Model
+set dstr model =
+    case DateString.toLocalDate dstr of
+        Err msg ->
+            Debug.log ("Invalid date string " ++ dstr ++ " for model") model
+
+        Ok date ->
+            date
 
 
 
@@ -142,7 +152,13 @@ viewMonth date =
 view : Model -> Html Msg
 view model =
     div [ style [ ( "width", "240px" ) ] ]
-        [ div [ style [ ( "display", "flex" ), ( "justify-content", "space-between" ), ( "padding", "5px" ) ] ]
+        [ div
+            [ style
+                [ ( "display", "flex" )
+                , ( "justify-content", "space-between" )
+                , ( "padding", "5px" )
+                ]
+            ]
             [ button [ onClick Prev ] [ text "<" ]
             , strong []
                 [ text << (\d -> toString (Date.month d) ++ " " ++ toString (Date.year d)) <| model ]
